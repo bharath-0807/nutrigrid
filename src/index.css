@@ -518,3 +518,36 @@ tbody tr:hover td { background:#F4F8FC; color:var(--text); }
   .login-roles{grid-template-columns:1fr;}
 }
 
+/* ── MOBILE IMPROVEMENTS ── */
+@media (max-width:768px) {
+  .top-bar { padding:0 14px; height:52px; }
+  .page-body { padding:12px 14px; }
+  .page-title-bar { padding:11px 14px; margin-bottom:14px; }
+  .page-title-bar h2 { font-size:15px; }
+  .card-body { padding:14px; }
+  .card-header { padding:11px 14px; }
+  .detail-header { padding:16px; gap:12px; }
+  .table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  table { min-width:500px; }
+  .top-bar-right { gap:6px; }
+  .ai-status { font-size:10px; padding:4px 8px; }
+  .land-nav { padding:0 4%; }
+  .land-hero { padding:80px 4% 48px; }
+  .land-section { padding:48px 4%; }
+  .land-cta { padding:48px 4%; }
+  .login-card-body { padding:20px; }
+  .login-card-header { padding:20px; }
+  .stat-value { font-size:26px; }
+  .hero-title { font-size:clamp(24px,6vw,36px); }
+  .hero-sub { font-size:14px; }
+  .benefit-grid { grid-template-columns:1fr; }
+}
+@media (max-width:480px) {
+  .hero-stats-strip { grid-template-columns:1fr; }
+  .hero-cta { flex-direction:column; }
+  .hero-btn-primary, .hero-btn-outline { width:100%; justify-content:center; }
+  .page-title-bar p { display:none; }
+  .stat-card { padding:12px 14px; }
+  .stat-value { font-size:22px; }
+  .login-roles { grid-template-columns:1fr 1fr; }
+}

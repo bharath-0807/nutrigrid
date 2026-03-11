@@ -215,70 +215,307 @@ function getDietGaps(intake, ageMonths) {
   return { gaps, nuts, rda };
 }
 
-// Individual Child PDF report
-function generateChildPDF(child, grade, waz, haz) {
-  const doc = new jsPDF();
-  const cfg = GRADE_CFG[grade] ?? GRADE_CFG["Normal"];
-  const last = child.records[child.records.length - 1];
+// ── QR CODE (pure canvas, no library) ──────────────────────
+// Draws a simple visual QR-like pattern for demo purposes
+function drawQR(doc, text, x, y, size) {
+  const modules = 21, cell = size / modules;
+  // deterministic pattern from text hash
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) hash = ((hash << 5) - hash + text.charCodeAt(i)) | 0;
+  // border + finder patterns
+  doc.setFillColor(0,59,115);
+  // outer border
+  doc.rect(x, y, size, size, "F");
+  doc.setFillColor(255,255,255);
+  doc.rect(x+cell, y+cell, size-cell*2, size-cell*2, "F");
+  // finder squares (top-left, top-right, bottom-left)
+  [[0,0],[0,14],[14,0]].forEach(([r,c])=>{
+    doc.setFillColor(0,59,115);
+    doc.rect(x+c*cell, y+r*cell, 7*cell, 7*cell, "F");
+    doc.setFillColor(255,255,255);
+    doc.rect(x+c*cell+cell, y+r*cell+cell, 5*cell, 5*cell, "F");
+    doc.setFillColor(0,59,115);
+    doc.rect(x+c*cell+2*cell, y+r*cell+2*cell, 3*cell, 3*cell, "F");
+  });
+  // data modules
+  for (let r = 0; r < modules; r++) {
+    for (let c = 0; c < modules; c++) {
+      if ((r<8&&c<8)||(r<8&&c>12)||(r>12&&c<8)) continue;
+      const bit = ((hash ^ (r*modules+c)*2654435761) >>> 0) % 2;
+      if (bit) {
+        doc.setFillColor(0,59,115);
+        doc.rect(x+c*cell, y+r*cell, cell, cell, "F");
+      }
+    }
+  }
+}
 
-  // Header
-  doc.setFillColor(0,59,115); doc.rect(0,0,210,36,"F");
-  doc.setFillColor(0,80,158); doc.rect(0,32,210,4,"F");
+// ── DRAW NUTRIENT BAR in PDF ────────────────────────────────
+function drawNutrientBar(doc, label, got, need, unit, color, x, y, w) {
+  const pct  = Math.min(1, need > 0 ? got / need : 0);
+  const ok   = pct >= 0.85;
+  const barH = 5, labelW = 28, valW = 32;
+  const barW = w - labelW - valW - 6;
+
+  doc.setFontSize(8); doc.setFont("helvetica","bold");
+  doc.setTextColor(ok ? 30 : 176, ok ? 132 : 58, ok ? 73 : 46);
+  doc.text(label, x, y + barH - 1);
+
+  // background bar
+  doc.setFillColor(220,228,236);
+  doc.roundedRect(x+labelW, y, barW, barH, 1, 1, "F");
+  // filled bar
+  const rgb = ok ? [30,132,73] : [176,58,46];
+  doc.setFillColor(...rgb);
+  doc.roundedRect(x+labelW, y, barW*pct, barH, 1, 1, "F");
+
+  // value text
+  doc.setFontSize(7); doc.setFont("helvetica","normal");
+  doc.setTextColor(60,81,102);
+  doc.text(`${got}${unit}/${need}${unit}`, x+labelW+barW+3, y+barH-1);
+}
+
+// ── INDIVIDUAL CHILD PDF (upgraded) ────────────────────────
+function generateChildPDF(child, grade, waz, haz, dietData) {
+  const doc  = new jsPDF();
+  const cfg  = GRADE_CFG[grade] ?? GRADE_CFG["Normal"];
+  const last = child.records[child.records.length - 1];
+  const rda  = getRDA(last.month);
+
+  // ── PAGE 1 HEADER ──
+  doc.setFillColor(0,59,115); doc.rect(0,0,210,38,"F");
+  doc.setFillColor(0,80,158); doc.rect(0,34,210,4,"F");
   doc.setTextColor(255,255,255);
   doc.setFontSize(15); doc.setFont("helvetica","bold");
-  doc.text("NutriGrid — Individual Child Nutritional Report",14,14);
+  doc.text("NutriGrid - Child Nutritional Assessment Report",14,13);
   doc.setFontSize(8.5); doc.setFont("helvetica","normal");
-  doc.text("Coimbatore District ICDS · March 2026 · WHO LMS Box-Cox Algorithm",14,24);
-  doc.text("For use by Anganwadi Workers, PHC staff & parents",14,31);
+  doc.text("Coimbatore District ICDS  |  March 2026  |  WHO LMS Box-Cox Algorithm (2006)",14,22);
+  doc.text("Jansons Institute of Technology  |  Niral Thiruvizha 3.0",14,30);
 
-  // Child info box
+  // ── GRADE BADGE (coloured box top-right) ──
+  const gc = grade==="SAM"?[176,58,46]:grade==="MAM"?[202,111,30]:[30,132,73];
+  doc.setFillColor(...gc);
+  doc.roundedRect(148,4,48,30,3,3,"F");
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(16); doc.setFont("helvetica","bold");
+  doc.text(grade, 172, 17, {align:"center"});
+  doc.setFontSize(7); doc.setFont("helvetica","normal");
+  doc.text(cfg.full.replace("Acute ",""), 172, 26, {align:"center"});
+  doc.text("WHO LMS Grade", 172, 31, {align:"center"});
+
+  // ── CHILD INFO + QR side by side ──
   doc.setTextColor(10,10,26);
-  doc.setFontSize(12); doc.setFont("helvetica","bold");
-  doc.text("Child Information",14,46);
-  autoTable(doc,{startY:50,head:[["Field","Details"]],
+  doc.setFontSize(11); doc.setFont("helvetica","bold");
+  doc.text("Child Information",14,50);
+
+  autoTable(doc,{startY:54, margin:{right:52},
+    head:[["Field","Details"]],
     body:[
-      ["Name",          child.name],
-      ["Age",           `${last.month} months`],
-      ["Sex",           child.gender==="boys"?"Male":"Female"],
-      ["Block/Village", child.village],
-      ["Weight",        `${last.weight} kg`],
-      ["Height",        `${last.height} cm`],
-      ["WAZ (LMS)",     waz.toFixed(3)],
-      ["HAZ (LMS)",     haz.toFixed(3)],
-      ["WHO Grade",     `${grade} — ${cfg.full}`],
-      ["Method",        "WHO LMS Box-Cox Z-score (2006)"],
+      ["Name",           child.name],
+      ["Age",            `${last.month} months (${(last.month/12).toFixed(1)} years)`],
+      ["Sex",            child.gender==="boys"?"Male":"Female"],
+      ["Block / Village",child.village],
+      ["Weight",         `${last.weight} kg`],
+      ["Height",         `${last.height} cm`],
+      ["WAZ",            `${waz.toFixed(3)}  (${waz<-3?"Below -3 SD":waz<-2?"Below -2 SD":"Within normal"})`],
+      ["HAZ",            `${haz.toFixed(3)}  (${haz<-3?"Severe stunting":haz<-2?"Moderate stunting":"Normal height"})`],
+      ["WHO Grade",      `${grade} - ${cfg.full}`],
+      ["Algorithm",      "WHO LMS Box-Cox Z-score  |  ICDS Standard"],
     ],
-    headStyles:{fillColor:[0,59,115]}, alternateRowStyles:{fillColor:[240,244,248]},
+    headStyles:{fillColor:[0,59,115],fontSize:8},
+    bodyStyles:{fontSize:8},
+    alternateRowStyles:{fillColor:[240,244,248]},
   });
 
-  // Growth history
-  doc.setFontSize(12); doc.setFont("helvetica","bold");
-  doc.text("Growth History",14,doc.lastAutoTable.finalY+12);
-  autoTable(doc,{startY:doc.lastAutoTable.finalY+16,
-    head:[["Visit (months)","Weight (kg)","Height (cm)","WAZ","HAZ","Grade"]],
+  // QR code
+  drawQR(doc, `nutrigrid-child-${child.id}-${child.name}`, 158, 54, 36);
+  doc.setFontSize(6.5); doc.setTextColor(120,140,160); doc.setFont("helvetica","normal");
+  doc.text("Scan for digital record", 176, 94, {align:"center"});
+
+  // ── WHO THRESHOLDS BOX ──
+  let y = doc.lastAutoTable.finalY + 10;
+  doc.setFillColor(235,243,251); doc.roundedRect(14, y, 182, 18, 2, 2, "F");
+  doc.setDrawColor(194,220,245); doc.roundedRect(14, y, 182, 18, 2, 2, "S");
+  doc.setTextColor(0,59,115); doc.setFontSize(8); doc.setFont("helvetica","bold");
+  doc.text("WHO Classification Reference:", 18, y+7);
+  doc.setFont("helvetica","normal"); doc.setFontSize(7.5);
+  doc.text("SAM: WAZ < -3 SD  |  MAM: WAZ -3 to -2 SD  |  Normal: WAZ >= -2 SD  |  Stunting: HAZ < -2 SD", 18, y+14);
+  y += 24;
+
+  // ── GROWTH HISTORY TABLE ──
+  doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(10,10,26);
+  doc.text("Growth History & Z-Score Trend",14,y);
+  autoTable(doc,{startY:y+4,
+    head:[["Visit","Weight","Height","WAZ","HAZ","Grade","Status"]],
     body: child.records.map(r=>{
-      const rWaz=lmsZScore(r.weight,r.month,child.gender,"weight");
-      const rHaz=lmsZScore(r.height,r.month,child.gender,"height");
-      const rg  =classifyChild(rWaz,rHaz);
-      return [`${r.month} mo`, r.weight, r.height, rWaz.toFixed(2), rHaz.toFixed(2), rg];
+      const rW=lmsZScore(r.weight,r.month,child.gender,"weight");
+      const rH=lmsZScore(r.height,r.month,child.gender,"height");
+      const rG=classifyChild(rW,rH);
+      const trend=rW<-3?"[!] Critical":rW<-2?"[v] Deficit":"[ok] Normal";
+      return [`${r.month} mo`,`${r.weight} kg`,`${r.height} cm`,rW.toFixed(2),rH.toFixed(2),rG,trend];
     }),
-    headStyles:{fillColor:[0,59,115],fontSize:8}, bodyStyles:{fontSize:8},
+    headStyles:{fillColor:[0,59,115],fontSize:7.5},
+    bodyStyles:{fontSize:7.5},
+    alternateRowStyles:{fillColor:[240,244,248]},
+    columnStyles:{3:{fontStyle:"bold"},4:{fontStyle:"bold"},6:{fontStyle:"bold"}},
+  });
+  y = doc.lastAutoTable.finalY;
+
+  // ── VISUAL WAZ TREND (mini sparkline using lines) ──
+  if (child.records.length >= 2 && y < 220) {
+    y += 8;
+    doc.setFontSize(9); doc.setFont("helvetica","bold"); doc.setTextColor(10,10,26);
+    doc.text("WAZ Trend Visualization",14,y);
+    y += 4;
+    const chartX=14, chartY=y, chartW=182, chartH=28;
+    doc.setFillColor(244,247,251); doc.rect(chartX,chartY,chartW,chartH,"F");
+    doc.setDrawColor(208,217,228); doc.rect(chartX,chartY,chartW,chartH,"S");
+    const wazToY=(w)=>{ const mn=-5,mx=1; return chartY+chartH-(((w-mn)/(mx-mn))*chartH); };
+    // SAM threshold line
+    doc.setDrawColor(176,58,46); doc.setLineDashPattern([2,1],0);
+    const y3=wazToY(-3); doc.line(chartX,y3,chartX+chartW,y3);
+    // MAM threshold line
+    const y2=wazToY(-2); doc.setDrawColor(202,111,30); doc.line(chartX,y2,chartX+chartW,y2);
+    doc.setLineDashPattern([],0);
+    // child WAZ line
+    doc.setDrawColor(0,80,158); doc.setLineWidth(0.8);
+    const pts=child.records.map((r,i)=>({
+      x: chartX + (i/(child.records.length-1))*chartW,
+      y: wazToY(lmsZScore(r.weight,r.month,child.gender,"weight")),
+    }));
+    for(let i=0;i<pts.length-1;i++) doc.line(pts[i].x,pts[i].y,pts[i+1].x,pts[i+1].y);
+    pts.forEach(p=>{ doc.setFillColor(0,80,158); doc.circle(p.x,p.y,1,"F"); });
+    doc.setLineWidth(0.2);
+    // ASCII-safe labels
+    doc.setFontSize(6); doc.setTextColor(176,58,46); doc.text("SAM -3SD",chartX+2,y3-1);
+    doc.setTextColor(202,111,30); doc.text("MAM -2SD",chartX+2,y2-1);
+    // age labels on x-axis
+    doc.setTextColor(100,120,140);
+    child.records.forEach((r,i)=>{
+      const px=chartX+(i/(child.records.length-1))*chartW;
+      doc.text(`${r.month}m`,px-3,chartY+chartH+5);
+    });
+    y = chartY + chartH + 10;
+  }
+
+  // ── PAGE 2 if needed - Clinical Recommendations ──
+  if (y > 230) { doc.addPage(); y = 20; }
+
+  doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(10,10,26);
+  doc.text(`Clinical Recommendations - ${grade} (${cfg.full})`,14,y+6); y+=10;
+  autoTable(doc,{startY:y,
+    head:[["#","Action Required"]],
+    body:(CLINICAL_RECS[grade]??[]).map((r,i)=>[(i+1).toString(),r]),
+    headStyles:{fillColor:[0,59,115],fontSize:8},
+    bodyStyles:{fontSize:8},
     alternateRowStyles:{fillColor:[240,244,248]},
   });
+  y = doc.lastAutoTable.finalY + 10;
 
-  // Recommendations
-  doc.setFontSize(12); doc.setFont("helvetica","bold");
-  doc.text(`Clinical Recommendations — ${grade}`,14,doc.lastAutoTable.finalY+12);
-  const recRows = (CLINICAL_RECS[grade]??[]).map((r,i)=>[(i+1).toString(),r]);
-  autoTable(doc,{startY:doc.lastAutoTable.finalY+16,
-    head:[["#","Recommendation"]],
-    body: recRows,
-    headStyles:{fillColor:[0,59,115],fontSize:8}, bodyStyles:{fontSize:8},
-    alternateRowStyles:{fillColor:[240,244,248]},
-  });
+  // ── DIET & NUTRITION SECTION ──
+  if (dietData && dietData.intake && dietData.intake.length > 0) {
+    if (y > 210) { doc.addPage(); y = 20; }
+    const nuts = calcNutrients(dietData.intake);
 
-  doc.setFontSize(7.5); doc.setTextColor(120,140,160);
-  doc.text(`NutriGrid · WHO Child Growth Standards (2006) · Niral Thiruvizha 3.0 · Jansons Institute of Technology, Coimbatore`,14,284);
+    doc.setFontSize(11); doc.setFont("helvetica","bold"); doc.setTextColor(10,10,26);
+    doc.text("Daily Diet Assessment",14,y); y+=6;
+
+    // Food intake table
+    autoTable(doc,{startY:y,
+      head:[["Food Item","Unit","Qty","Calories","Protein","Iron","Vit-A","Zinc"]],
+      body: dietData.intake.map(({foodId,qty})=>{
+        const f=ICMR_FOODS.find(x=>x.id===foodId);
+        if(!f) return [];
+        const factor=qty*f.grams/100;
+        return [f.name,f.unit,`x${qty}`,(f.cal*factor).toFixed(0)+"kcal",(f.pro*factor).toFixed(1)+"g",(f.iron*factor).toFixed(1)+"mg",(f.vitA*factor).toFixed(0)+"mcg",(f.zinc*factor).toFixed(1)+"mg"];
+      }).filter(r=>r.length>0),
+      headStyles:{fillColor:[0,123,131],fontSize:7},
+      bodyStyles:{fontSize:7},
+      alternateRowStyles:{fillColor:[224,245,245]},
+    });
+    y = doc.lastAutoTable.finalY + 8;
+
+    // Nutrient adequacy bars
+    if (y > 220) { doc.addPage(); y = 20; }
+    doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(10,10,26);
+    doc.text("Nutrient Adequacy vs ICMR RDA",14,y); y+=6;
+
+    const barDefs=[
+      {label:"Energy",  got:nuts.cal,  need:rda.cal,  unit:"kcal",col:[0,80,158]},
+      {label:"Protein", got:nuts.pro,  need:rda.pro,  unit:"g",   col:[0,123,131]},
+      {label:"Iron",    got:nuts.iron, need:rda.iron, unit:"mg",  col:[202,111,30]},
+      {label:"Vit-A",   got:nuts.vitA, need:rda.vitA, unit:"mcg", col:[142,68,173]},
+      {label:"Zinc",    got:nuts.zinc, need:rda.zinc, unit:"mg",  col:[30,132,73]},
+    ];
+    barDefs.forEach((b,i)=>{
+      drawNutrientBar(doc,b.label,b.got,b.need,b.unit,b.col,14,y+(i*9),182);
+    });
+    y += barDefs.length * 9 + 8;
+
+    // Forecast summary
+    if (dietData.forecast && y < 240) {
+      if (y > 220) { doc.addPage(); y = 20; }
+      doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(10,10,26);
+      doc.text(`Growth Forecast - ${dietData.horizon}-Month Prediction`,14,y); y+=5;
+
+      const adeqPct = Math.round(dietData.forecast.calAdequacy*100);
+      const adeqOk  = adeqPct >= 85;
+      doc.setFillColor(adeqOk?233:253, adeqOk?247:237, adeqOk?239:236);
+      doc.roundedRect(14,y,182,16,2,2,"F");
+      doc.setFontSize(8); doc.setFont("helvetica","bold");
+      doc.setTextColor(adeqOk?30:176,adeqOk?132:58,adeqOk?73:46);
+      doc.text(`Calorie Adequacy: ${adeqPct}%  |  Growth Velocity Factor: ${(dietData.forecast.velocityFactor*100).toFixed(0)}%`,18,y+7);
+      doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(60,81,102);
+      doc.text(adeqOk?"Diet meets ICMR RDA - child on track for normal growth trajectory":"Diet below ICMR RDA - growth faltering risk - see food gap recommendations below",18,y+13);
+      y += 22;
+
+      autoTable(doc,{startY:y,
+        head:[["Month","Current Diet WAZ","Optimal Diet WAZ","SAM Line","MAM Line","Projected Grade"]],
+        body: dietData.forecast.points.map(p=>{
+          const projG=classifyChild(p["Current Diet WAZ"],-1.5);
+          return [p.month, p["Current Diet WAZ"].toFixed(2), p["Optimal Diet WAZ"].toFixed(2), "-3.0", "-2.0", projG];
+        }),
+        headStyles:{fillColor:[0,59,115],fontSize:7},
+        bodyStyles:{fontSize:7.5},
+        alternateRowStyles:{fillColor:[240,244,248]},
+        columnStyles:{1:{fontStyle:"bold"},2:{fontStyle:"bold",textColor:[30,132,73]}},
+      });
+      y = doc.lastAutoTable.finalY + 8;
+    }
+
+    // Food gap recommendations
+    if (y < 250) {
+      if (y > 230) { doc.addPage(); y = 20; }
+      const {gaps} = getDietGaps(dietData.intake, last.month);
+      doc.setFontSize(10); doc.setFont("helvetica","bold"); doc.setTextColor(10,10,26);
+      doc.text("Food Gap Recommendations",14,y); y+=5;
+      if (gaps.length === 0) {
+        doc.setFillColor(233,247,239); doc.roundedRect(14,y,182,14,2,2,"F");
+        doc.setFontSize(8); doc.setFont("helvetica","bold"); doc.setTextColor(30,132,73);
+        doc.text("[ok] All nutrient targets met - continue current diet",18,y+9);
+        y+=18;
+      } else {
+        autoTable(doc,{startY:y,
+          head:[["Nutrient","Got","RDA","Gap %","Recommended Foods"]],
+          body:gaps.map(g=>[g.nutrient,`${g.got}${g.unit}`,`${g.need}${g.unit}`,`${Math.round(g.severity*100)}%`,g.foods]),
+          headStyles:{fillColor:[176,58,46],fontSize:7},
+          bodyStyles:{fontSize:7},
+          alternateRowStyles:{fillColor:[253,237,236]},
+        });
+        y = doc.lastAutoTable.finalY + 8;
+      }
+    }
+  }
+
+  // ── FOOTER every page ──
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i=1;i<=pageCount;i++) {
+    doc.setPage(i);
+    doc.setFillColor(0,59,115); doc.rect(0,287,210,10,"F");
+    doc.setFontSize(6.5); doc.setTextColor(255,255,255); doc.setFont("helvetica","normal");
+    doc.text(`NutriGrid  |  WHO Child Growth Standards (2006)  |  ICMR-NIN Food Composition (2017)  |  Niral Thiruvizha 3.0  |  Page ${i}/${pageCount}`,14,293);
+  }
+
   doc.save(`NutriGrid_${child.name.replace(/ /g,"_")}_Report.pdf`);
 }
 
@@ -308,9 +545,9 @@ function generatePDF(children, grades) {
   doc.setFillColor(0,59,115);doc.rect(0,0,210,34,"F");
   doc.setFillColor(0,80,158);doc.rect(0,30,210,4,"F");
   doc.setTextColor(255,255,255);doc.setFontSize(16);doc.setFont("helvetica","bold");
-  doc.text("NutriGrid — ICDS Nutritional Assessment Report",14,14);
+  doc.text("NutriGrid - ICDS Nutritional Assessment Report",14,14);
   doc.setFontSize(8.5);doc.setFont("helvetica","normal");
-  doc.text("Coimbatore District · March 2026 · WHO LMS Box-Cox Algorithm · SAM/MAM Classification",14,24);
+  doc.text("Coimbatore District  |  March 2026  |  WHO LMS Box-Cox Algorithm  |  SAM/MAM Classification",14,24);
   const total=children.length,sam=children.filter(c=>grades[c.id]==="SAM").length,mam=children.filter(c=>grades[c.id]==="MAM").length,normal=children.filter(c=>grades[c.id]==="Normal").length,gam=sam+mam;
   doc.setTextColor(10,10,26);doc.setFontSize(12);doc.setFont("helvetica","bold");
   doc.text("Programme Indicators",14,46);
@@ -319,7 +556,7 @@ function generatePDF(children, grades) {
   doc.text("Individual Records",14,doc.lastAutoTable.finalY+12);
   autoTable(doc,{startY:doc.lastAutoTable.finalY+16,head:[["Name","Age","Sex","Block","Wt(kg)","Ht(cm)","WAZ","HAZ","WHO Grade"]],body:children.map(c=>{const last=c.records[c.records.length-1];return [c.name,last.month,c.gender==="boys"?"M":"F",c.village,`${last.weight}`,`${last.height}`,lmsZScore(last.weight,last.month,c.gender,"weight").toFixed(2),lmsZScore(last.height,last.month,c.gender,"height").toFixed(2),grades[c.id]??"—"];}),headStyles:{fillColor:[0,59,115],fontSize:8},bodyStyles:{fontSize:8},alternateRowStyles:{fillColor:[240,244,248]}});
   doc.setFontSize(7.5);doc.setTextColor(120,140,160);
-  doc.text("WHO LMS Box-Cox z-score · SAM: WAZ/HAZ<-3 · MAM: -3 to -2 · NutriGrid ICDS System · Niral Thiruvizha 3.0",14,284);
+  doc.text("WHO LMS Box-Cox z-score  |  SAM: WAZ/HAZ<-3  |  MAM: -3 to -2  |  NutriGrid ICDS System  |  Niral Thiruvizha 3.0",14,284);
   doc.save("NutriGrid_ICDS_Report.pdf");
 }
 
@@ -640,27 +877,19 @@ function Analytics({children,grades,stats}) {
 }
 
 // ── DIET FORECAST PANEL ────────────────────────────────────
-function DietForecast({ child, grade }) {
+function DietForecast({ child, grade, onDietReady }) {
   const last = child.records[child.records.length - 1];
   const rda  = getRDA(last.month);
 
-  // intake state: [{foodId, qty}]
-  const [intake,     setIntake]     = useState([]);
-  const [horizon,    setHorizon]    = useState(6);
-  const [computed,   setComputed]   = useState(false);
-  const [forecast,   setForecast]   = useState(null);
-  const [gapResult,  setGapResult]  = useState(null);
+  const [intake,    setIntake]    = useState([]);
+  const [horizon,   setHorizon]   = useState(6);
+  const [computed,  setComputed]  = useState(false);
+  const [forecast,  setForecast]  = useState(null);
+  const [gapResult, setGapResult] = useState(null);
 
-  const addFood = (foodId) => {
-    if (intake.find(i => i.foodId === foodId)) return;
-    setIntake(p => [...p, {foodId, qty:1}]);
-    setComputed(false);
-  };
-  const setQty = (foodId, qty) => {
-    setIntake(p => p.map(i => i.foodId===foodId ? {...i, qty:Math.max(0.5, +qty)} : i));
-    setComputed(false);
-  };
-  const removeFood = (foodId) => { setIntake(p => p.filter(i => i.foodId !== foodId)); setComputed(false); };
+  const addFood   = (foodId) => { if (intake.find(i=>i.foodId===foodId)) return; setIntake(p=>[...p,{foodId,qty:1}]); setComputed(false); };
+  const setQty    = (foodId, qty) => { setIntake(p=>p.map(i=>i.foodId===foodId?{...i,qty:Math.max(0.5,+qty)}:i)); setComputed(false); };
+  const removeFood= (foodId) => { setIntake(p=>p.filter(i=>i.foodId!==foodId)); setComputed(false); };
 
   const handleCompute = () => {
     if (intake.length === 0) return;
@@ -669,6 +898,8 @@ function DietForecast({ child, grade }) {
     setForecast({points, calAdequacy, velocityFactor});
     setGapResult(gd);
     setComputed(true);
+    // Pass diet data up to Detail for PDF
+    if (onDietReady) onDietReady({intake, horizon, forecast:{points,calAdequacy,velocityFactor}});
   };
 
   const nuts = intake.length > 0 ? calcNutrients(intake) : null;
@@ -886,8 +1117,9 @@ function DietForecast({ child, grade }) {
 
 // DETAIL
 function Detail({child,grades,setScreen}) {
-  const [mainTab, setMainTab] = useState("growth");
+  const [mainTab,  setMainTab]  = useState("growth");
   const [chartTab, setChartTab] = useState("weight");
+  const [dietData, setDietData] = useState(null);
   if(!child)return null;
   const last=child.records[child.records.length-1];
   const waz=lmsZScore(last.weight,last.month,child.gender,"weight"),haz=lmsZScore(last.height,last.month,child.gender,"height");
@@ -905,8 +1137,8 @@ function Detail({child,grades,setScreen}) {
       {/* Top bar */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
         <button className="btn-ghost" onClick={()=>setScreen("children")}><ArrowLeft size={13}/> Back to Registry</button>
-        <button className="btn-primary" onClick={()=>generateChildPDF(child,g,waz,haz)}>
-          <FileText size={13}/> Download Child Report
+        <button className="btn-primary" onClick={()=>generateChildPDF(child,g,waz,haz,dietData)}>
+          <FileText size={13}/> Download Child Report {dietData?"(+Diet)":""}
         </button>
       </div>
 
@@ -1020,7 +1252,7 @@ function Detail({child,grades,setScreen}) {
       )}
 
       {/* DIET & FORECAST TAB */}
-      {mainTab==="diet" && <DietForecast child={child} grade={g}/>}
+      {mainTab==="diet" && <DietForecast child={child} grade={g} onDietReady={setDietData}/>}
     </>
   );
 }
