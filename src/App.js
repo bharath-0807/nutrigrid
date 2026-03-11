@@ -2,336 +2,331 @@ import { useState, useEffect, useCallback } from "react";
 import {
   LayoutDashboard, Users, PlusCircle, BarChart2,
   AlertTriangle, CheckCircle, Activity, Baby,
-  Brain, MapPin, TrendingUp, TrendingDown,
-  ArrowLeft, Zap, FileText
+  Brain, MapPin, TrendingUp,
+  ArrowLeft, FileText, ArrowRight,
+  Shield, Wifi, Bell, HeartPulse,
+  ClipboardList, Zap, ChevronRight,
+  Download, LogOut, LogIn
 } from "lucide-react";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, Legend,
-  BarChart, Bar
+  LineChart, Line, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, Legend, AreaChart, Area
 } from "recharts";
-import * as tf from "@tensorflow/tfjs";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
-// ── WHO STANDARDS ─────────────────────────────────────────────
-const WHO = {
+const LMS_TABLES = {
   boys: {
-    weight: [
-      { age:0,  sd3n:2.1,  sd2n:2.5,  med:3.3,  sd2:4.4  },
-      { age:6,  sd3n:5.7,  sd2n:6.4,  med:7.9,  sd2:9.8  },
-      { age:12, sd3n:7.7,  sd2n:8.6,  med:10.2, sd2:12.3 },
-      { age:24, sd3n:9.7,  sd2n:10.8, med:12.7, sd2:15.3 },
-      { age:36, sd3n:11.4, sd2n:12.7, med:14.9, sd2:18.0 },
-      { age:48, sd3n:13.0, sd2n:14.4, med:16.9, sd2:20.5 },
-      { age:60, sd3n:14.1, sd2n:15.7, med:18.3, sd2:22.4 },
-    ],
-    height: [
-      { age:0,  sd3n:44.2,  sd2n:46.1,  med:49.9,  sd2:53.7  },
-      { age:6,  sd3n:61.7,  sd2n:63.3,  med:67.6,  sd2:71.9  },
-      { age:12, sd3n:69.6,  sd2n:71.0,  med:75.7,  sd2:80.5  },
-      { age:24, sd3n:81.7,  sd2n:83.5,  med:87.8,  sd2:92.2  },
-      { age:36, sd3n:88.7,  sd2n:91.1,  med:96.1,  sd2:101.1 },
-      { age:48, sd3n:94.9,  sd2n:97.7,  med:103.3, sd2:108.9 },
-      { age:60, sd3n:100.7, sd2n:103.9, med:110.0, sd2:116.0 },
-    ],
+    weight: [[0,-0.3521,3.3464,0.14602],[1,-0.3521,4.4709,0.13395],[2,-0.3521,5.5675,0.12385],[3,-0.3521,6.3762,0.11727],[6,-0.3521,7.9340,0.11080],[9,-0.3521,9.1525,0.10698],[12,-0.3521,10.2087,0.10390],[18,-0.3521,11.5014,0.10170],[24,-0.3521,12.6558,0.10220],[36,-0.3521,14.3450,0.10695],[48,-0.3521,16.1750,0.11400],[60,-0.3521,18.3414,0.12200]],
+    height: [[0,1,49.8842,0.03795],[1,1,54.7244,0.03557],[2,1,58.4249,0.03424],[3,1,61.4292,0.03328],[6,1,67.6236,0.03174],[9,1,72.0036,0.03117],[12,1,75.7488,0.03063],[18,1,82.3080,0.03001],[24,1,87.8161,0.03013],[36,1,96.1004,0.03054],[48,1,103.3120,0.03097],[60,1,110.0352,0.03167]],
   },
   girls: {
-    weight: [
-      { age:0,  sd3n:2.0,  sd2n:2.4,  med:3.2,  sd2:4.2  },
-      { age:6,  sd3n:5.3,  sd2n:5.9,  med:7.3,  sd2:9.3  },
-      { age:12, sd3n:7.0,  sd2n:7.9,  med:9.5,  sd2:11.7 },
-      { age:24, sd3n:9.0,  sd2n:10.2, med:12.1, sd2:14.9 },
-      { age:36, sd3n:10.8, sd2n:12.1, med:14.3, sd2:17.7 },
-      { age:48, sd3n:12.3, sd2n:13.9, med:16.4, sd2:20.5 },
-      { age:60, sd3n:13.7, sd2n:15.5, med:18.3, sd2:23.2 },
-    ],
-    height: [
-      { age:0,  sd3n:43.6, sd2n:45.4,  med:49.1,  sd2:52.9  },
-      { age:6,  sd3n:59.8, sd2n:61.2,  med:65.7,  sd2:70.3  },
-      { age:12, sd3n:68.9, sd2n:70.0,  med:74.0,  sd2:78.0  },
-      { age:24, sd3n:80.0, sd2n:81.7,  med:86.4,  sd2:91.2  },
-      { age:36, sd3n:87.4, sd2n:90.0,  med:95.1,  sd2:100.1 },
-      { age:48, sd3n:94.1, sd2n:96.9,  med:102.7, sd2:108.5 },
-      { age:60, sd3n:99.9, sd2n:103.0, med:109.4, sd2:115.7 },
-    ],
+    weight: [[0,-0.3833,3.2322,0.14171],[1,-0.3833,4.1873,0.13724],[2,-0.3833,5.1282,0.13000],[3,-0.3833,5.8458,0.12619],[6,-0.3833,7.2973,0.12034],[9,-0.3833,8.3817,0.11683],[12,-0.3833,9.5249,0.11333],[18,-0.3833,10.8200,0.11108],[24,-0.3833,12.1416,0.11298],[36,-0.3833,14.3278,0.11939],[48,-0.3833,16.4436,0.12849],[60,-0.3833,18.3953,0.13468]],
+    height: [[0,1,49.1477,0.03790],[1,1,53.6872,0.03625],[2,1,57.0673,0.03546],[3,1,59.8029,0.03481],[6,1,65.7302,0.03368],[9,1,70.1434,0.03275],[12,1,74.0150,0.03231],[18,1,80.7886,0.03142],[24,1,86.4035,0.03118],[36,1,95.1254,0.03074],[48,1,102.7124,0.03054],[60,1,109.4170,0.03051]],
   },
 };
 
-function interpolate(table, age, key) {
-  if (age <= table[0].age) return table[0][key];
-  if (age >= table[table.length-1].age) return table[table.length-1][key];
-  for (let i = 0; i < table.length-1; i++) {
-    if (table[i].age <= age && age <= table[i+1].age) {
-      const t = (age - table[i].age) / (table[i+1].age - table[i].age);
-      return table[i][key] + t * (table[i+1][key] - table[i][key]);
+function lmsInterpolate(table, age) {
+  if (age <= table[0][0]) return { L:table[0][1], M:table[0][2], S:table[0][3] };
+  if (age >= table[table.length-1][0]) { const r=table[table.length-1]; return {L:r[1],M:r[2],S:r[3]}; }
+  for (let i=0;i<table.length-1;i++) {
+    if (table[i][0]<=age && age<=table[i+1][0]) {
+      const t=(age-table[i][0])/(table[i+1][0]-table[i][0]);
+      return { L:table[i][1]+t*(table[i+1][1]-table[i][1]), M:table[i][2]+t*(table[i+1][2]-table[i][2]), S:table[i][3]+t*(table[i+1][3]-table[i][3]) };
     }
   }
-  return table[0][key];
+  return { L:table[0][1], M:table[0][2], S:table[0][3] };
 }
 
-function getZScore(age, value, gender, type) {
-  const table = WHO[gender][type];
-  const med  = interpolate(table, age, "med");
-  const sd2  = interpolate(table, age, "sd2");
-  const sd2n = interpolate(table, age, "sd2n");
-  const sd   = value >= med ? (sd2 - med) / 2 : (med - sd2n) / 2;
-  return sd === 0 ? 0 : (value - med) / sd;
+function lmsZScore(value, age, gender, type) {
+  const { L, M, S } = lmsInterpolate(LMS_TABLES[gender][type], age);
+  if (Math.abs(L) < 0.0001) return Math.log(value/M)/S;
+  return (Math.pow(value/M, L) - 1) / (L * S);
 }
 
-// ── TF.JS MODEL ───────────────────────────────────────────────
-async function buildModel() {
-  const xs = tf.tensor2d([
-    [0.5,0.5,0.4],[0.2,0.3,0.5],[1.0,0.8,0.3],[0.8,0.6,0.2],
-    [-0.8,-0.7,0.4],[-1.0,-0.9,0.6],[-0.9,-1.1,0.3],[-0.7,-0.8,0.5],
-    [-1.5,-1.8,0.5],[-2.0,-1.6,0.4],[-1.8,-2.1,0.6],[-2.2,-1.9,0.3],
-    [-2.8,-2.5,0.5],[-3.0,-2.8,0.4],[-3.2,-3.1,0.3],[-2.5,-3.0,0.6],
-  ]);
-  const ys = tf.tensor2d([
-    [1,0,0,0],[1,0,0,0],[1,0,0,0],[1,0,0,0],
-    [0,1,0,0],[0,1,0,0],[0,1,0,0],[0,1,0,0],
-    [0,0,1,0],[0,0,1,0],[0,0,1,0],[0,0,1,0],
-    [0,0,0,1],[0,0,0,1],[0,0,0,1],[0,0,0,1],
-  ]);
-  const model = tf.sequential({
-    layers: [
-      tf.layers.dense({ inputShape:[3], units:16, activation:"relu" }),
-      tf.layers.dense({ units:8, activation:"relu" }),
-      tf.layers.dense({ units:4, activation:"softmax" }),
-    ],
-  });
-  model.compile({ optimizer:"adam", loss:"categoricalCrossentropy", metrics:["accuracy"] });
-  await model.fit(xs, ys, { epochs:150, verbose:0 });
-  xs.dispose(); ys.dispose();
-  return model;
+function classifyChild(waz, haz) {
+  if (waz < -3 || haz < -3) return "SAM";
+  if (waz < -2 || haz < -2) return "MAM";
+  return "Normal";
 }
 
-async function predict(model, waz, haz, age) {
-  if (!model) return null;
-  const input = tf.tensor2d([[waz, haz, age/60]]);
-  const pred  = model.predict(input);
-  const probs = await pred.data();
-  input.dispose(); pred.dispose();
-  const LABELS = ["Normal","At Risk","Moderate Malnutrition","Severe Malnutrition"];
-  const idx    = [...probs].indexOf(Math.max(...probs));
-  return { label:LABELS[idx], confidence:(probs[idx]*100).toFixed(1) };
+function getGrowthVelocity(records, tab) {
+  if (records.length < 2) return null;
+  const last=records[records.length-1], prev=records[records.length-2];
+  const val=tab==="weight"?last.weight-prev.weight:last.height-prev.height;
+  const months=last.month-prev.month;
+  return months>0?(val/months).toFixed(2):null;
 }
 
-// ── CONSTANTS ─────────────────────────────────────────────────
+const GRADE_CFG = {
+  SAM:    { chip:"chip-sam",    col:"#B03A2E", bg:"#FDEDEC", border:"#F1948A", dot:"#B03A2E", full:"Severe Acute Malnutrition",   priority:1 },
+  MAM:    { chip:"chip-mam",    col:"#CA6F1E", bg:"#FEF5E7", border:"#F0B27A", dot:"#CA6F1E", full:"Moderate Acute Malnutrition",  priority:2 },
+  Normal: { chip:"chip-normal", col:"#1E8449", bg:"#E9F7EF", border:"#82E0AA", dot:"#1E8449", full:"Normal Nutritional Status",    priority:4 },
+};
+
+const CLINICAL_RECS = {
+  SAM: ["URGENT: Refer immediately to NRC / District Hospital — RUTF F-75/F-100 protocol","Check bilateral pitting oedema and MUAC (< 11.5 cm confirms SAM)","Weekly mandatory follow-up — notify CDPO and District Health Officer","Screen for complications: dehydration, hypothermia, hypoglycaemia","Register in ICDS SAM tracking register immediately"],
+  MAM: ["Enrol in Supplementary Nutrition Programme (SNP) — Bal Shakti ration","Provide RUSF or fortified blended foods as per state nutrition guidelines","Bi-weekly anthropometric monitoring and dietary recall","IYCF counselling — minimum dietary diversity, meal frequency","Refer to PHC if no improvement after 8 weeks"],
+  Normal: ["Continue monthly WHO anthropometric monitoring per ICDS schedule","Reinforce IYCF practices — age-appropriate feeding counselling","Verify completion of National Immunisation Schedule","Document Vitamin A supplementation and deworming status"],
+};
+
+const WHO_REF = {
+  boys: {
+    weight: [{age:0,med:3.3,sd2n:2.5,sd3n:2.1},{age:6,med:7.9,sd2n:6.4,sd3n:5.7},{age:12,med:10.2,sd2n:8.6,sd3n:7.7},{age:24,med:12.7,sd2n:10.8,sd3n:9.7},{age:36,med:14.9,sd2n:12.7,sd3n:11.4},{age:48,med:16.9,sd2n:14.4,sd3n:13.0},{age:60,med:18.3,sd2n:15.7,sd3n:14.1}],
+    height: [{age:0,med:49.9,sd2n:46.1,sd3n:44.2},{age:6,med:67.6,sd2n:63.3,sd3n:61.7},{age:12,med:75.7,sd2n:71.0,sd3n:69.6},{age:24,med:87.8,sd2n:83.5,sd3n:81.7},{age:36,med:96.1,sd2n:91.1,sd3n:88.7},{age:48,med:103.3,sd2n:97.7,sd3n:94.9},{age:60,med:110.0,sd2n:103.9,sd3n:100.7}],
+  },
+  girls: {
+    weight: [{age:0,med:3.2,sd2n:2.4,sd3n:2.0},{age:6,med:7.3,sd2n:5.9,sd3n:5.3},{age:12,med:9.5,sd2n:7.9,sd3n:7.0},{age:24,med:12.1,sd2n:10.2,sd3n:9.0},{age:36,med:14.3,sd2n:12.1,sd3n:10.8},{age:48,med:16.4,sd2n:13.9,sd3n:12.3},{age:60,med:18.3,sd2n:15.5,sd3n:13.7}],
+    height: [{age:0,med:49.1,sd2n:45.4,sd3n:43.6},{age:6,med:65.7,sd2n:61.2,sd3n:59.8},{age:12,med:74.0,sd2n:70.0,sd3n:68.9},{age:24,med:86.4,sd2n:81.7,sd3n:80.0},{age:36,med:95.1,sd2n:90.0,sd3n:87.4},{age:48,med:102.7,sd2n:96.9,sd3n:94.1},{age:60,med:109.4,sd2n:103.0,sd3n:99.9}],
+  },
+};
+
+function buildChartData(child, tab) {
+  const table=WHO_REF[child.gender][tab==="weight"?"weight":"height"], pts={};
+  child.records.forEach(r=>{pts[r.month]=tab==="weight"?r.weight:r.height;});
+  return table.map(s=>({age:`${s.age}m`,Child:pts[s.age]??null,Median:s.med,"-2SD":s.sd2n,"-3SD":s.sd3n}));
+}
+
 const INIT_CHILDREN = [
-  { id:1, name:"Aarav Kumar",   age:24, gender:"boys",  village:"Block A",
-    records:[{month:0,weight:3.2,height:49.5},{month:6,weight:6.8,height:64.0},{month:12,weight:8.5,height:72.0},{month:18,weight:9.8,height:78.0},{month:24,weight:10.9,height:83.0}] },
-  { id:2, name:"Priya Selvi",   age:36, gender:"girls", village:"Block B",
-    records:[{month:0,weight:2.8,height:47.5},{month:6,weight:5.2,height:61.0},{month:12,weight:6.8,height:69.0},{month:18,weight:8.0,height:75.0},{month:24,weight:9.0,height:81.0},{month:30,weight:10.0,height:87.0},{month:36,weight:11.2,height:91.5}] },
-  { id:3, name:"Rajan Murugan", age:18, gender:"boys",  village:"Block A",
-    records:[{month:0,weight:2.4,height:46.0},{month:6,weight:5.8,height:63.0},{month:12,weight:7.2,height:70.0},{month:18,weight:7.5,height:74.0}] },
-  { id:4, name:"Meena Devi",    age:48, gender:"girls", village:"Block C",
-    records:[{month:0,weight:3.1,height:49.0},{month:12,weight:9.2,height:73.5},{month:24,weight:11.8,height:85.0},{month:36,weight:13.9,height:94.0},{month:48,weight:16.1,height:102.5}] },
+  {id:1,name:"Aarav Kumar",  age:24,gender:"boys", village:"Block A",records:[{month:0,weight:3.2,height:49.5},{month:6,weight:6.8,height:64.0},{month:12,weight:8.5,height:72.0},{month:18,weight:9.8,height:78.0},{month:24,weight:10.9,height:83.0}]},
+  {id:2,name:"Priya Selvi",  age:36,gender:"girls",village:"Block B",records:[{month:0,weight:2.8,height:47.5},{month:6,weight:5.2,height:61.0},{month:12,weight:6.8,height:69.0},{month:18,weight:8.0,height:75.0},{month:24,weight:9.0,height:81.0},{month:30,weight:10.0,height:87.0},{month:36,weight:11.2,height:91.5}]},
+  {id:3,name:"Rajan Murugan",age:18,gender:"boys", village:"Block A",records:[{month:0,weight:2.4,height:46.0},{month:6,weight:5.8,height:63.0},{month:12,weight:7.2,height:70.0},{month:18,weight:7.5,height:74.0}]},
+  {id:4,name:"Meena Devi",   age:48,gender:"girls",village:"Block C",records:[{month:0,weight:3.1,height:49.0},{month:12,weight:9.2,height:73.5},{month:24,weight:11.8,height:85.0},{month:36,weight:13.9,height:94.0},{month:48,weight:16.1,height:102.5}]},
 ];
 
-const STATUS_CFG = {
-  "Normal":                { bc:"badge-green",  dot:"#38A169", border:"#68D391", bg:"#F0FFF4" },
-  "At Risk":               { bc:"badge-yellow", dot:"#D69E2E", border:"#F6E05E", bg:"#FFFFF0" },
-  "Moderate Malnutrition": { bc:"badge-orange", dot:"#C05621", border:"#FBD38D", bg:"#FFFAF0" },
-  "Severe Malnutrition":   { bc:"badge-red",    dot:"#C53030", border:"#FEB2B2", bg:"#FFF5F5" },
-};
-
-const RECS = {
-  "Normal":                ["Continue regular monthly monitoring","Maintain balanced nutrition","Ensure timely vaccinations","Track growth at next scheduled visit"],
-  "At Risk":               ["Schedule bi-monthly weight checks","Provide nutrition counseling to parents","Ensure adequate calorie intake daily","Monitor for signs of illness"],
-  "Moderate Malnutrition": ["Enroll in supplementary nutrition program","Provide therapeutic food (Bal Shakti)","Bi-weekly monitoring required","Check for underlying infection"],
-  "Severe Malnutrition":   ["Refer immediately to PHC / District Hospital","Initiate RUTF (Ready-to-Use Therapeutic Food)","Weekly monitoring mandatory","Notify District Health Officer immediately"],
-};
-
-const NAV = [
-  { id:"dashboard", label:"Dashboard",  Icon:LayoutDashboard },
-  { id:"children",  label:"Children",   Icon:Users },
-  { id:"add",       label:"Add Record", Icon:PlusCircle },
-  { id:"analytics", label:"Analytics",  Icon:BarChart2 },
+const DEMO_USERS = [
+  {id:"aw1",name:"Kavitha S.",  role:"Anganwadi Worker",block:"Block A, Coimbatore",emoji:"👩‍⚕️"},
+  {id:"co1",name:"Dr. Meenakshi",role:"CDPO Officer",  block:"District HQ",       emoji:"👩‍💼"},
 ];
 
-// ── CHART DATA HELPER ─────────────────────────────────────────
-function buildChartData(child, chartTab) {
-  const type  = chartTab === "weight" ? "weight" : "height";
-  const table = WHO[child.gender][type];
-  const pts   = {};
-  child.records.forEach(r => { pts[r.month] = chartTab === "weight" ? r.weight : r.height; });
-  return table.map(s => ({
-    age:    `${s.age}m`,
-    Child:  pts[s.age] ?? null,
-    Median: s.med,
-    "-2SD": s.sd2n,
-    "-3SD": s.sd3n,
-  }));
+const NAV=[
+  {id:"dashboard",label:"Dashboard",  Icon:LayoutDashboard},
+  {id:"children", label:"Children",   Icon:Users},
+  {id:"add",      label:"Add Record", Icon:PlusCircle},
+  {id:"analytics",label:"Analytics",  Icon:BarChart2},
+];
+
+const CS={tooltip:{contentStyle:{background:"#fff",border:"1px solid #D0D9E4",borderRadius:4,fontSize:12,fontFamily:"IBM Plex Sans",boxShadow:"0 2px 8px rgba(0,40,80,0.10)"}},grid:"#E8EDF3",axis:{fontSize:11,fill:"#7A92A8",fontFamily:"IBM Plex Sans"}};
+
+function generatePDF(children, grades) {
+  const doc=new jsPDF();
+  doc.setFillColor(0,59,115);doc.rect(0,0,210,34,"F");
+  doc.setFillColor(0,80,158);doc.rect(0,30,210,4,"F");
+  doc.setTextColor(255,255,255);doc.setFontSize(16);doc.setFont("helvetica","bold");
+  doc.text("NutriGrid — ICDS Nutritional Assessment Report",14,14);
+  doc.setFontSize(8.5);doc.setFont("helvetica","normal");
+  doc.text("Coimbatore District · March 2026 · WHO LMS Box-Cox Algorithm · SAM/MAM Classification",14,24);
+  const total=children.length,sam=children.filter(c=>grades[c.id]==="SAM").length,mam=children.filter(c=>grades[c.id]==="MAM").length,normal=children.filter(c=>grades[c.id]==="Normal").length,gam=sam+mam;
+  doc.setTextColor(10,10,26);doc.setFontSize(12);doc.setFont("helvetica","bold");
+  doc.text("Programme Indicators",14,46);
+  autoTable(doc,{startY:50,head:[["Indicator","Count","Rate","WHO Threshold"]],body:[["Total Assessed",total,"100%","—"],["Normal",normal,`${Math.round(normal/total*100)}%`,"Target ≥75%"],["GAM (MAM+SAM)",gam,`${Math.round(gam/total*100)}%`,"Emergency >15%"],["MAM",mam,`${Math.round(mam/total*100)}%`,"Alert >10%"],["SAM",sam,`${Math.round(sam/total*100)}%`,"Emergency >2%"]],headStyles:{fillColor:[0,59,115]},alternateRowStyles:{fillColor:[240,244,248]}});
+  doc.setFontSize(12);doc.setFont("helvetica","bold");
+  doc.text("Individual Records",14,doc.lastAutoTable.finalY+12);
+  autoTable(doc,{startY:doc.lastAutoTable.finalY+16,head:[["Name","Age","Sex","Block","Wt(kg)","Ht(cm)","WAZ","HAZ","WHO Grade"]],body:children.map(c=>{const last=c.records[c.records.length-1];return [c.name,last.month,c.gender==="boys"?"M":"F",c.village,`${last.weight}`,`${last.height}`,lmsZScore(last.weight,last.month,c.gender,"weight").toFixed(2),lmsZScore(last.height,last.month,c.gender,"height").toFixed(2),grades[c.id]??"—"];}),headStyles:{fillColor:[0,59,115],fontSize:8},bodyStyles:{fontSize:8},alternateRowStyles:{fillColor:[240,244,248]}});
+  doc.setFontSize(7.5);doc.setTextColor(120,140,160);
+  doc.text("WHO LMS Box-Cox z-score · SAM: WAZ/HAZ<-3 · MAM: -3 to -2 · NutriGrid ICDS System · Niral Thiruvizha 3.0",14,284);
+  doc.save("NutriGrid_ICDS_Report.pdf");
 }
 
-// ── PDF GENERATOR ─────────────────────────────────────────────
-function generatePDF(children, preds) {
-  const doc = new jsPDF();
-
-  // Header
-  doc.setFillColor(21, 101, 192);
-  doc.rect(0, 0, 210, 30, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.text("NutriGrid — Monthly Report", 14, 14);
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.text("Coimbatore District ICDS · March 2026", 14, 22);
-
-  // Summary stats
-  const total    = children.length;
-  const normal   = children.filter(c => (preds[c.id]?.label ?? "Normal") === "Normal").length;
-  const atRisk   = children.filter(c => (preds[c.id]?.label ?? "Normal") === "At Risk").length;
-  const moderate = children.filter(c => (preds[c.id]?.label ?? "Normal") === "Moderate Malnutrition").length;
-  const severe   = children.filter(c => (preds[c.id]?.label ?? "Normal") === "Severe Malnutrition").length;
-
-  doc.setTextColor(0, 0, 0);
-  doc.setFontSize(13);
-  doc.setFont("helvetica", "bold");
-  doc.text("Summary Statistics", 14, 42);
-
-  autoTable(doc, {
-    startY: 46,
-    head: [["Category", "Count", "Percentage"]],
-    body: [
-      ["Total Children", total, "100%"],
-      ["Normal",         normal,   `${Math.round(normal/total*100)}%`],
-      ["At Risk",        atRisk,   `${Math.round(atRisk/total*100)}%`],
-      ["Moderate Malnutrition", moderate, `${Math.round(moderate/total*100)}%`],
-      ["Severe Malnutrition",   severe,   `${Math.round(severe/total*100)}%`],
-    ],
-    headStyles: { fillColor: [21,101,192] },
-    alternateRowStyles: { fillColor: [240,244,248] },
-  });
-
-  // Children detail table
-  doc.setFontSize(13);
-  doc.setFont("helvetica", "bold");
-  doc.text("Children Detail Report", 14, doc.lastAutoTable.finalY + 14);
-
-  const rows = children.map(c => {
-    const last = c.records[c.records.length - 1];
-    const waz  = getZScore(last.month, last.weight, c.gender, "weight").toFixed(2);
-    const haz  = getZScore(last.month, last.height, c.gender, "height").toFixed(2);
-    const status = preds[c.id]?.label ?? "Normal";
-    const conf   = preds[c.id]?.confidence ?? "-";
-    return [c.name, `${c.age}m`, c.gender==="boys"?"Boy":"Girl", c.village, `${last.weight}kg`, `${last.height}cm`, waz, haz, status, `${conf}%`];
-  });
-
-  autoTable(doc, {
-    startY: doc.lastAutoTable.finalY + 18,
-    head: [["Name","Age","Gender","Village","Weight","Height","WAZ","HAZ","AI Status","Confidence"]],
-    body: rows,
-    headStyles: { fillColor:[21,101,192], fontSize:9 },
-    bodyStyles: { fontSize:9 },
-    alternateRowStyles: { fillColor:[240,244,248] },
-    didParseCell: (data) => {
-      if (data.section === "body" && data.column.index === 8) {
-        const val = data.cell.raw;
-        if (val === "Severe Malnutrition")   data.cell.styles.textColor = [197,48,48];
-        if (val === "Moderate Malnutrition") data.cell.styles.textColor = [192,86,33];
-        if (val === "At Risk")               data.cell.styles.textColor = [214,158,46];
-        if (val === "Normal")                data.cell.styles.textColor = [56,161,105];
-      }
-    },
-  });
-
-  // Footer
-  doc.setFontSize(9);
-  doc.setTextColor(150,150,150);
-  doc.text("Generated by NutriGrid AI · Powered by TensorFlow.js · WHO Child Growth Standards", 14, 285);
-
-  doc.save("NutriGrid_Report_March2026.pdf");
-}
-
-// ════════════════════════════════════════════════════════════
-// ALL SCREEN COMPONENTS ARE DEFINED OUTSIDE App()
-// This fixes the cursor jump bug caused by re-renders
-// ════════════════════════════════════════════════════════════
-
-// ── DASHBOARD ─────────────────────────────────────────────────
-function Dashboard({ children, preds, stats, goDetail }) {
-  const getStatus = c => preds[c.id]?.label ?? "Normal";
+// LOGIN
+function LoginPage({onLogin}) {
+  const [sel,setSel]=useState("aw1");
+  const handleLogin=()=>{const u=DEMO_USERS.find(u=>u.id===sel);if(u)onLogin(u);};
   return (
-    <>
-      {(stats.severe + stats.moderate > 0) && (
-        <div className="alert-banner">
-          <AlertTriangle size={22} color="#E53E3E"/>
-          <div>
-            <h4>Immediate Action Required</h4>
-            <p>{stats.severe} severe + {stats.moderate} moderate malnutrition cases detected by AI</p>
+    <div className="login-page">
+      <div className="login-grid"/>
+      <div className="login-card">
+        <div className="login-header">
+          <div className="login-logo">
+            <div className="login-logo-icon">🌱</div>
+            <div><div className="login-logo-text">NutriGrid</div><div className="login-logo-sub">ICDS Monitoring System</div></div>
           </div>
+          <div className="login-header-tag"><strong>Coimbatore District · ICDS Programme</strong><br/>WHO LMS Algorithm · v2.0</div>
         </div>
-      )}
+        <div className="login-body">
+          <div className="login-title">Sign in to NutriGrid</div>
+          <div className="login-sub">Select your role to access the ICDS dashboard</div>
+          <div className="demo-users">
+            <div className="demo-label">Demo Accounts — Click to Select</div>
+            {DEMO_USERS.map(u=>(
+              <div key={u.id} className="demo-user-row" onClick={()=>setSel(u.id)} style={sel===u.id?{borderColor:"#00509E",background:"#EBF3FB"}:{}}>
+                <div style={{display:"flex",alignItems:"center",gap:10}}>
+                  <span style={{fontSize:22}}>{u.emoji}</span>
+                  <div className="demo-user-info"><strong>{u.name}</strong><span>{u.role} · {u.block}</span></div>
+                </div>
+                <span className="demo-user-badge">{sel===u.id?"✓ SELECTED":"SELECT"}</span>
+              </div>
+            ))}
+          </div>
+          <button className="login-btn" onClick={handleLogin}><LogIn size={15}/> Access Dashboard</button>
+          <div className="login-footer-note">🔒 Demo system · Niral Thiruvizha 3.0 · Jansons Institute of Technology</div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-      <div className="stat-grid">
-        {[
-          { label:"Total Children", value:stats.total,                 icon:<Baby size={22}/>,          bg:"#EBF8FF", ic:"#2B6CB0" },
-          { label:"Normal",         value:stats.normal,                icon:<CheckCircle size={22}/>,   bg:"#F0FFF4", ic:"#276749" },
-          { label:"At Risk",        value:stats.atRisk,                icon:<AlertTriangle size={22}/>, bg:"#FFFFF0", ic:"#975A16" },
-          { label:"Critical",       value:stats.severe+stats.moderate, icon:<Zap size={22}/>,           bg:"#FFF5F5", ic:"#C53030" },
-        ].map(s => (
-          <div className="stat-card" key={s.label}>
-            <div className="stat-icon" style={{background:s.bg,color:s.ic}}>{s.icon}</div>
-            <div>
-              <div className="stat-value" style={{color:s.ic}}>{s.value}</div>
-              <div className="stat-label">{s.label}</div>
+// LANDING
+function LandingPage({onLogin}) {
+  const grades=[
+    {code:"SAM",name:"Severe Acute Malnutrition",  desc:"WAZ or HAZ < −3 SD. Immediate NRC referral, RUTF protocol.",bg:"#FDEDEC",border:"#F1948A",col:"#B03A2E"},
+    {code:"MAM",name:"Moderate Acute Malnutrition", desc:"WAZ or HAZ −3 to −2 SD. SNP enrolment, RUSF supplementation.",bg:"#FEF5E7",border:"#F0B27A",col:"#CA6F1E"},
+    {code:"GAM",name:"Global Acute Malnutrition",   desc:"Combined SAM+MAM. WHO emergency threshold >15%.",bg:"#FEFDE7",border:"#F7DC6F",col:"#D4AC0D"},
+    {code:"Normal",name:"Normal Nutritional Status",desc:"WAZ ≥ −2 and HAZ ≥ −2. Routine monthly monitoring.",bg:"#E9F7EF",border:"#82E0AA",col:"#1E8449"},
+  ];
+  const features=[
+    {Icon:Brain,      col:"#00509E",bg:"#EBF3FB",title:"WHO LMS Algorithm",       desc:"Official Box-Cox z-score method — same standard used by UNICEF, NRC centres, and India's NHM"},
+    {Icon:HeartPulse, col:"#007B83",bg:"#E0F5F5",title:"SAM/MAM Clinical Grading",desc:"4-level classification with WHO-aligned RUTF/SNP intervention protocols"},
+    {Icon:Bell,       col:"#B03A2E",bg:"#FDEDEC",title:"Priority Alert System",   desc:"SAM cases auto-escalated with NRC referral; MAM enrolled in SNP automatically"},
+    {Icon:ClipboardList,col:"#CA6F1E",bg:"#FEF5E7",title:"ICDS PDF Reports",     desc:"Monthly district report with GAM/SAM/MAM rates vs WHO emergency thresholds"},
+    {Icon:Wifi,       col:"#00509E",bg:"#EBF3FB",title:"PWA — Install & Offline",  desc:"Install on any device. Works without internet — built for rural Anganwadi centres"},
+    {Icon:Shield,     col:"#1E8449",bg:"#E9F7EF",title:"Role-Based Login",        desc:"Separate access for Anganwadi Workers and CDPO Officers"},
+  ];
+  const steps=[
+    {n:"01",title:"Login",          desc:"Worker or CDPO Officer signs in with their role credentials"},
+    {n:"02",title:"Measure Child",  desc:"Enter weight and height — WHO LMS z-score computed instantly"},
+    {n:"03",title:"Clinical Grade", desc:"System classifies SAM/MAM/Normal with UNICEF-standard protocol"},
+    {n:"04",title:"Report & Refer", desc:"PDF for ICDS submission; SAM cases automatically flagged for NRC"},
+  ];
+  return (
+    <div className="landing">
+      <nav className="land-nav">
+        <div className="land-logo"><div className="land-logo-icon">🌱</div><div><div className="land-logo-text">NutriGrid</div><div className="land-logo-sub">WHO LMS · ICDS System</div></div></div>
+        <div className="land-nav-links">
+          <span className="land-nav-link">Features</span>
+          <span className="land-nav-link">WHO Grading</span>
+          <button className="hero-btn-primary" onClick={onLogin} style={{padding:"8px 20px",fontSize:13}}>Sign In <ArrowRight size={13}/></button>
+        </div>
+      </nav>
+      <section className="land-hero">
+        <div className="hero-grid-overlay"/>
+        <div className="hero-inner">
+          <div>
+            <div className="hero-flag"><span style={{width:8,height:8,borderRadius:"50%",background:"#4ADE80",display:"inline-block"}}/>Niral Thiruvizha 3.0 · Jansons Institute of Technology</div>
+            <h1 className="hero-title">WHO-Standard SAM/MAM<br/>Detection for<br/><span className="accent">Anganwadi Centres</span></h1>
+            <p className="hero-sub">NutriGrid implements the WHO official LMS Box-Cox z-score algorithm — the same method used by UNICEF, India NHM, and NRC centres — to classify SAM, MAM, and GAM with clinical precision.</p>
+            <div className="hero-cta">
+              <button className="hero-btn-primary" onClick={onLogin}>Sign In to System <ArrowRight size={14}/></button>
+              <button className="hero-btn-outline">WHO LMS Reference</button>
+            </div>
+            <div className="hero-stats-strip">
+              {[{val:"13.9L+",lbl:"Anganwadi Centres"},{val:"8.1Cr+",lbl:"Children Covered"},{val:"35.5%",lbl:"GAM Prevalence"}].map(s=>(
+                <div className="hero-stat" key={s.lbl}><div className="hero-stat-val">{s.val}</div><div className="hero-stat-lbl">{s.lbl}</div></div>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
-
-      <div className="card" style={{marginBottom:20,display:"flex",alignItems:"center",gap:12,padding:"14px 20px"}}>
-        <div style={{width:36,height:36,borderRadius:10,background:"#C6F6D5",display:"flex",alignItems:"center",justifyContent:"center"}}>
-          <Brain size={18} color="#276749"/>
+          <div className="hero-mockup">
+            <div className="mockup-topbar"><div className="mockup-dot"/><div className="mockup-dot"/><div className="mockup-dot"/><span className="mockup-title">NutriGrid</span><span className="mockup-badge">WHO LMS</span></div>
+            <div className="mockup-body">
+              <div className="mockup-stat-row">
+                <div className="mockup-stat-card"><div className="mockup-stat-val" style={{color:"#00509E"}}>4</div><div className="mockup-stat-lbl">Registered</div></div>
+                <div className="mockup-stat-card"><div className="mockup-stat-val" style={{color:"#B03A2E"}}>2</div><div className="mockup-stat-lbl">SAM Cases</div></div>
+              </div>
+              <div className="mockup-table-hdr">Priority — SAM Cases</div>
+              {[{name:"Aarav Kumar",grade:"SAM",sc:"#B03A2E",sb:"#FDEDEC"},{name:"Priya Selvi",grade:"SAM",sc:"#B03A2E",sb:"#FDEDEC"},{name:"Rajan M.",grade:"MAM",sc:"#CA6F1E",sb:"#FEF5E7"}].map(r=>(
+                <div className="mockup-row" key={r.name}><span className="mockup-name">{r.name}</span><span className="mockup-grade" style={{color:r.sc,background:r.sb,border:`1px solid ${r.sc}40`}}>{r.grade}</span></div>
+              ))}
+            </div>
+          </div>
         </div>
-        <div>
-          <div style={{fontWeight:700,fontSize:13,color:"#276749"}}>TensorFlow.js Neural Network Active</div>
-          <div style={{fontSize:12,color:"#718096"}}>3-layer dense network classifying growth patterns in real-time</div>
+      </section>
+      <section className="land-section alt">
+        <div className="land-section-head"><div className="land-section-flag">Clinical Classification</div><h2 className="land-section-title">WHO-UNICEF Standard Grading</h2><p className="land-section-sub">Every child classified using the official WHO LMS Box-Cox method — not just thresholds, but the actual statistical model used in global nutrition programmes</p></div>
+        <div className="grade-legend">
+          {grades.map(g=>(
+            <div key={g.code} className="grade-legend-card" style={{background:g.bg,borderColor:g.border,borderLeftColor:g.col}}>
+              <div className="grade-legend-code" style={{color:g.col}}>{g.code}</div>
+              <div className="grade-legend-name" style={{color:g.col}}>{g.name}</div>
+              <div className="grade-legend-desc" style={{color:g.col}}>{g.desc}</div>
+            </div>
+          ))}
         </div>
-        <div style={{marginLeft:"auto"}}><span className="badge badge-green">● Live</span></div>
-      </div>
+      </section>
+      <section className="land-section">
+        <div className="land-section-head"><div className="land-section-flag">Capabilities</div><h2 className="land-section-title">Built to clinical and ICDS programme standards</h2></div>
+        <div className="feature-grid">
+          {features.map(f=>(
+            <div className="feature-card" key={f.title} style={{borderTopColor:f.col}}>
+              <div className="feature-icon-wrap" style={{background:f.bg}}><f.Icon size={20} color={f.col}/></div>
+              <div className="feature-title">{f.title}</div>
+              <div className="feature-desc">{f.desc}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="land-section alt">
+        <div className="land-section-head"><div className="land-section-flag">Workflow</div><h2 className="land-section-title">4-step clinical assessment workflow</h2></div>
+        <div className="steps-row">
+          {steps.map(s=>(<div className="step-card" key={s.n}><div className="step-num">{s.n}</div><div className="step-title">{s.title}</div><div className="step-desc">{s.desc}</div></div>))}
+        </div>
+      </section>
+      <section className="land-cta">
+        <div className="land-cta-inner">
+          <h2>Explore NutriGrid Live</h2>
+          <p>Sign in with a demo account — register children, view WHO growth charts, classify SAM/MAM, and generate ICDS-formatted reports instantly.</p>
+          <button className="hero-btn-primary" onClick={onLogin} style={{fontSize:14,padding:"12px 28px"}}><LogIn size={15}/> Sign In to System</button>
+        </div>
+      </section>
+      <footer className="land-footer">
+        <div className="land-footer-left">🌱 NutriGrid v2.0 · WHO LMS Algorithm · Niral Thiruvizha 3.0 · Jansons Institute of Technology, Coimbatore</div>
+        <div className="land-footer-right">Mohanapriya S · Gayathri M · Lavanya B · Bharath M · Guide: Mrs. Vidhya Gowri V</div>
+      </footer>
+    </div>
+  );
+}
 
+// DASHBOARD
+function Dashboard({children,grades,stats,goDetail}) {
+  const trendData=[{month:"Oct",normal:18,gam:6},{month:"Nov",normal:16,gam:8},{month:"Dec",normal:15,gam:9},{month:"Jan",normal:14,gam:10},{month:"Feb",normal:13,gam:11},{month:"Mar",normal:stats.normal,gam:stats.sam+stats.mam}];
+  const gamRate=stats.total>0?Math.round((stats.sam+stats.mam)/stats.total*100):0;
+  return (
+    <>
+      {stats.sam>0&&(<div className="alert-critical"><AlertTriangle size={18} color="#B03A2E" style={{flexShrink:0,marginTop:1}}/><div><h4>SAM Alert — {stats.sam} Severe Acute Malnutrition Case{stats.sam>1?"s":""} — NRC Referral Required</h4><p>GAM rate: {gamRate}% · {stats.mam} MAM case{stats.mam!==1?"s":""} on SNP · Immediate action per ICDS protocol</p></div></div>)}
+      <div className="stat-grid">
+        {[
+          {label:"Total Registered",value:stats.total,Icon:Baby,         col:"#00509E",bg:"#EBF3FB",top:"#00509E",note:"+2 this month"},
+          {label:"Normal",          value:stats.normal,Icon:CheckCircle, col:"#1E8449",bg:"#E9F7EF",top:"#1E8449",note:"WAZ/HAZ ≥ −2 SD"},
+          {label:"MAM Cases",       value:stats.mam,  Icon:AlertTriangle,col:"#CA6F1E",bg:"#FEF5E7",top:"#CA6F1E",note:"WAZ/HAZ −3 to −2"},
+          {label:"SAM Cases",       value:stats.sam,  Icon:Zap,          col:"#B03A2E",bg:"#FDEDEC",top:"#B03A2E",note:"WAZ/HAZ < −3 SD"},
+        ].map(s=>(<div className="stat-card" key={s.label} style={{borderTopColor:s.top}}><div className="stat-top"><div><div className="stat-value" style={{color:s.col}}>{s.value}</div><div className="stat-label">{s.label}</div></div><div className="stat-icon" style={{background:s.bg}}><s.Icon size={18} color={s.col}/></div></div><div className="stat-change" style={{background:s.bg,color:s.col,fontFamily:"IBM Plex Mono",fontSize:10}}>{s.note}</div></div>))}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 280px",gap:14,marginBottom:14}}>
+        <div className="card">
+          <div className="card-header"><div><div className="card-title">GAM Trend — 6 Months</div><div className="card-subtitle">Global Acute Malnutrition vs Normal</div></div></div>
+          <div className="card-body">
+            <ResponsiveContainer width="100%" height={155}>
+              <AreaChart data={trendData} margin={{left:-20,right:10}}>
+                <defs>
+                  <linearGradient id="gn" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#1E8449" stopOpacity={0.15}/><stop offset="95%" stopColor="#1E8449" stopOpacity={0}/></linearGradient>
+                  <linearGradient id="gg" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#B03A2E" stopOpacity={0.15}/><stop offset="95%" stopColor="#B03A2E" stopOpacity={0}/></linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke={CS.grid}/><XAxis dataKey="month" tick={CS.axis}/><YAxis tick={CS.axis} allowDecimals={false}/><Tooltip {...CS.tooltip}/><Legend wrapperStyle={{fontSize:12,fontFamily:"IBM Plex Sans"}}/>
+                <Area type="monotone" dataKey="normal" name="Normal" stroke="#1E8449" fill="url(#gn)" strokeWidth={2}/>
+                <Area type="monotone" dataKey="gam" name="GAM" stroke="#B03A2E" fill="url(#gg)" strokeWidth={2}/>
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        <div className="card">
+          <div className="card-header"><div><div className="card-title">WHO Classification</div></div></div>
+          <div className="card-body">
+            {[{k:"Algorithm",v:"WHO LMS Box-Cox"},{k:"WAZ < −3",v:"SAM → NRC"},{k:"WAZ −3→−2",v:"MAM → SNP"},{k:"HAZ < −3",v:"Stunting"},{k:"GAM Rate",v:`${gamRate}%`},{k:"WHO Alert",v:"GAM > 15%"}].map(r=>(<div key={r.k} style={{display:"flex",justifyContent:"space-between",padding:"7px 0",borderBottom:"1px solid #F0F4F8",fontSize:12}}><span style={{color:"#7A92A8",fontWeight:500}}>{r.k}</span><span style={{fontWeight:700,color:"#0D1B2A",fontFamily:"IBM Plex Mono",fontSize:11.5}}>{r.v}</span></div>))}
+          </div>
+        </div>
+      </div>
       <div className="card">
-        <div className="section-header">
-          <span className="section-title">Cases Requiring Attention</span>
-        </div>
+        <div className="card-header"><div><div className="card-title">Priority Case Register</div><div className="card-subtitle">{children.filter(c=>grades[c.id]!=="Normal").length} cases — SAM flagged for NRC referral</div></div></div>
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Child</th><th>Age</th><th>Village</th><th>AI Status</th><th>Confidence</th></tr></thead>
+            <thead><tr><th>Child</th><th>Age</th><th>Block</th><th>Weight</th><th>Height</th><th>WAZ</th><th>HAZ</th><th>WHO Grade</th></tr></thead>
             <tbody>
-              {children.filter(c => getStatus(c) !== "Normal").map(child => {
-                const s   = getStatus(child);
-                const cfg = STATUS_CFG[s];
-                const conf = preds[child.id]?.confidence;
-                return (
-                  <tr key={child.id} onClick={() => goDetail(child)}>
-                    <td><div style={{display:"flex",alignItems:"center",gap:10}}>
-                      <div className="avatar" style={{background:cfg.dot}}>{child.name[0]}</div>
-                      <div><div style={{fontWeight:600}}>{child.name}</div><div style={{fontSize:12,color:"#718096"}}>{child.gender==="boys"?"Boy":"Girl"}</div></div>
-                    </div></td>
-                    <td>{child.age} months</td>
-                    <td><div style={{display:"flex",alignItems:"center",gap:5}}><MapPin size={13} color="#718096"/>{child.village}</div></td>
-                    <td><span className={`badge ${cfg.bc}`}>{s}</span></td>
-                    <td>
-                      <div style={{display:"flex",alignItems:"center",gap:8}}>
-                        <div style={{flex:1,background:"#E2E8F0",borderRadius:4,height:6,width:80}}>
-                          <div style={{background:cfg.dot,height:6,borderRadius:4,width:`${conf}%`}}/>
-                        </div>
-                        <span style={{fontSize:12,fontWeight:600,color:"#4A5568"}}>{conf}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                );
+              {children.filter(c=>grades[c.id]!=="Normal").sort((a,b)=>(GRADE_CFG[grades[a.id]]?.priority??9)-(GRADE_CFG[grades[b.id]]?.priority??9)).map(child=>{
+                const last=child.records[child.records.length-1],g=grades[child.id]??"Normal",cfg=GRADE_CFG[g];
+                const waz=lmsZScore(last.weight,last.month,child.gender,"weight"),haz=lmsZScore(last.height,last.month,child.gender,"height");
+                return (<tr key={child.id} onClick={()=>goDetail(child)}><td><div style={{display:"flex",alignItems:"center",gap:9}}><div className="avatar" style={{background:cfg.dot}}>{child.name[0]}</div><div><div style={{fontWeight:600,color:"#0D1B2A",fontSize:13}}>{child.name}</div><div style={{fontSize:11,color:"#7A92A8"}}>{child.gender==="boys"?"Male":"Female"}</div></div></div></td><td style={{fontFamily:"IBM Plex Mono",fontSize:12}}>{last.month}mo</td><td style={{fontSize:12,color:"#3D5166"}}>{child.village}</td><td style={{fontFamily:"IBM Plex Mono",fontSize:12,fontWeight:600}}>{last.weight} kg</td><td style={{fontFamily:"IBM Plex Mono",fontSize:12,fontWeight:600}}>{last.height} cm</td><td style={{fontFamily:"IBM Plex Mono",fontSize:12,fontWeight:700,color:waz<-2?"#B03A2E":"#1E8449"}}>{waz.toFixed(2)}</td><td style={{fontFamily:"IBM Plex Mono",fontSize:12,fontWeight:700,color:haz<-2?"#B03A2E":"#1E8449"}}>{haz.toFixed(2)}</td><td><span className={`chip ${cfg.chip}`}>{g}</span></td></tr>);
               })}
-              {children.filter(c => getStatus(c) !== "Normal").length === 0 && (
-                <tr><td colSpan={5} style={{textAlign:"center",color:"#718096",padding:24}}>
-                  <CheckCircle size={24} color="#38A169" style={{margin:"0 auto 8px",display:"block"}}/>
-                  All children are in normal nutritional status
-                </td></tr>
-              )}
+              {children.filter(c=>grades[c.id]!=="Normal").length===0&&(<tr><td colSpan={8} style={{textAlign:"center",padding:32,color:"#7A92A8"}}><CheckCircle size={20} color="#1E8449" style={{margin:"0 auto 8px",display:"block"}}/>No SAM/MAM cases detected</td></tr>)}
             </tbody>
           </table>
         </div>
@@ -340,36 +335,19 @@ function Dashboard({ children, preds, stats, goDetail }) {
   );
 }
 
-// ── CHILDREN LIST ─────────────────────────────────────────────
-function ChildrenList({ children, preds, goDetail, setScreen }) {
-  const getStatus = c => preds[c.id]?.label ?? "Normal";
+// CHILDREN LIST
+function ChildrenList({children,grades,goDetail,setScreen}) {
   return (
     <div className="card">
-      <div className="section-header">
-        <span className="section-title">All Registered Children</span>
-        <button className="btn-primary" onClick={() => setScreen("add")}><PlusCircle size={15}/> Add Child</button>
-      </div>
+      <div className="card-header"><div><div className="card-title">Child Registry</div><div className="card-subtitle">{children.length} children · WHO LMS graded</div></div><button className="btn-primary" onClick={()=>setScreen("add")}><PlusCircle size={13}/> Register Child</button></div>
       <div className="table-wrap">
         <table>
-          <thead><tr><th>Child</th><th>Age</th><th>Village</th><th>Weight</th><th>Height</th><th>AI Status</th></tr></thead>
+          <thead><tr><th>Name</th><th>Age</th><th>Sex</th><th>Block</th><th>Weight</th><th>Height</th><th>WAZ</th><th>HAZ</th><th>WHO Grade</th></tr></thead>
           <tbody>
-            {children.map(child => {
-              const last = child.records[child.records.length-1];
-              const s    = getStatus(child);
-              const cfg  = STATUS_CFG[s];
-              return (
-                <tr key={child.id} onClick={() => goDetail(child)}>
-                  <td><div style={{display:"flex",alignItems:"center",gap:10}}>
-                    <div className="avatar" style={{background:cfg.dot}}>{child.name[0]}</div>
-                    <div><div style={{fontWeight:600}}>{child.name}</div><div style={{fontSize:12,color:"#718096"}}>{child.gender==="boys"?"Boy":"Girl"}</div></div>
-                  </div></td>
-                  <td>{child.age} months</td>
-                  <td><div style={{display:"flex",alignItems:"center",gap:5}}><MapPin size={13} color="#718096"/>{child.village}</div></td>
-                  <td><strong>{last.weight}</strong> kg</td>
-                  <td><strong>{last.height}</strong> cm</td>
-                  <td><span className={`badge ${cfg.bc}`}>{s}</span></td>
-                </tr>
-              );
+            {children.map(child=>{
+              const last=child.records[child.records.length-1],g=grades[child.id]??"Normal",cfg=GRADE_CFG[g];
+              const waz=lmsZScore(last.weight,last.month,child.gender,"weight"),haz=lmsZScore(last.height,last.month,child.gender,"height");
+              return (<tr key={child.id} onClick={()=>goDetail(child)}><td><div style={{display:"flex",alignItems:"center",gap:9}}><div className="avatar" style={{background:cfg.dot,width:28,height:28,fontSize:12}}>{child.name[0]}</div><span style={{fontWeight:600,fontSize:13,color:"#0D1B2A"}}>{child.name}</span></div></td><td style={{fontFamily:"IBM Plex Mono",fontSize:12}}>{last.month}mo</td><td style={{fontSize:12}}>{child.gender==="boys"?"M":"F"}</td><td style={{fontSize:12,color:"#3D5166"}}>{child.village}</td><td style={{fontFamily:"IBM Plex Mono",fontSize:12,fontWeight:600}}>{last.weight} kg</td><td style={{fontFamily:"IBM Plex Mono",fontSize:12,fontWeight:600}}>{last.height} cm</td><td style={{fontFamily:"IBM Plex Mono",fontSize:12,fontWeight:700,color:waz<-2?"#B03A2E":"#1E8449"}}>{waz.toFixed(2)}</td><td style={{fontFamily:"IBM Plex Mono",fontSize:12,fontWeight:700,color:haz<-2?"#B03A2E":"#1E8449"}}>{haz.toFixed(2)}</td><td><span className={`chip ${cfg.chip}`}>{g}</span></td></tr>);
             })}
           </tbody>
         </table>
@@ -378,443 +356,224 @@ function ChildrenList({ children, preds, goDetail, setScreen }) {
   );
 }
 
-// ── ADD RECORD ────────────────────────────────────────────────
-// Fully uncontrolled with refs to prevent cursor jump
-function AddRecord({ onAdd }) {
-  const [form, setForm]   = useState({ name:"", age:"", gender:"boys", village:"Block A", weight:"", height:"" });
-  const [toast, setToast] = useState(false);
-  const [error, setError] = useState("");
-
-  const update = useCallback((key, val) => {
-    setForm(prev => ({ ...prev, [key]: val }));
-  }, []);
-
-  const handleSubmit = () => {
-    if (!form.name.trim() || !form.age || !form.weight || !form.height) {
-      setError("Please fill in all fields.");
-      return;
-    }
+// ADD RECORD
+function AddRecord({onAdd}) {
+  const [form,setForm]=useState({name:"",age:"",gender:"boys",village:"Block A",weight:"",height:""});
+  const [toast,setToast]=useState(null);
+  const [error,setError]=useState("");
+  const update=useCallback((k,v)=>setForm(p=>({...p,[k]:v})),[]);
+  const handleSubmit=()=>{
+    if(!form.name.trim()||!form.age||!form.weight||!form.height){setError("All fields required for WHO z-score classification.");return;}
+    const age=parseInt(form.age),wt=parseFloat(form.weight),ht=parseFloat(form.height);
+    const waz=lmsZScore(wt,age,form.gender,"weight"),haz=lmsZScore(ht,age,form.gender,"height");
+    const grade=classifyChild(waz,haz);
     setError("");
-    onAdd({
-      id:      Date.now(),
-      name:    form.name.trim(),
-      age:     parseInt(form.age),
-      gender:  form.gender,
-      village: form.village,
-      records: [{ month:parseInt(form.age), weight:parseFloat(form.weight), height:parseFloat(form.height) }],
-    });
-    setForm({ name:"", age:"", gender:"boys", village:"Block A", weight:"", height:"" });
-    setToast(true);
-    setTimeout(() => setToast(false), 2500);
+    onAdd({id:Date.now(),name:form.name.trim(),age,gender:form.gender,village:form.village,records:[{month:age,weight:wt,height:ht}]});
+    setToast({grade,waz:waz.toFixed(2),haz:haz.toFixed(2)});
+    setForm({name:"",age:"",gender:"boys",village:"Block A",weight:"",height:""});
+    setTimeout(()=>setToast(null),4000);
   };
-
   return (
-    <div style={{maxWidth:640,margin:"0 auto"}}>
+    <div style={{maxWidth:560,margin:"0 auto"}}>
       <div className="card">
-        <div className="section-header" style={{marginBottom:20}}>
-          <span className="section-title">New Child Record</span>
-          <div style={{display:"flex",alignItems:"center",gap:6,fontSize:12,color:"#718096"}}><Brain size={14}/> AI will classify automatically</div>
+        <div className="card-header"><div><div className="card-title">Register New Child</div><div className="card-subtitle">WHO LMS z-score computed automatically</div></div><div style={{display:"flex",alignItems:"center",gap:6,background:"#E0F5F5",border:"1px solid #80CCCE",borderRadius:3,padding:"4px 10px"}}><Brain size={12} color="#007B83"/><span style={{fontSize:11,color:"#007B83",fontWeight:700,fontFamily:"IBM Plex Mono"}}>WHO LMS</span></div></div>
+        <div className="card-body">
+          {toast&&(<div className="toast" style={{background:GRADE_CFG[toast.grade]?.bg,borderColor:GRADE_CFG[toast.grade]?.border,borderLeftColor:GRADE_CFG[toast.grade]?.col,color:GRADE_CFG[toast.grade]?.col}}><CheckCircle size={14}/>Registered · WHO Grade: <strong>{toast.grade}</strong> · WAZ:{toast.waz} · HAZ:{toast.haz}</div>)}
+          {error&&<div className="form-error">{error}</div>}
+          <div className="form-grid">
+            <div className="form-group" style={{gridColumn:"1 / -1"}}><label className="form-label">Full Name</label><input className="form-input" placeholder="Child's full name" value={form.name} onChange={e=>update("name",e.target.value)}/></div>
+            <div className="form-group"><label className="form-label">Age (months)</label><input className="form-input" type="number" placeholder="0 – 60" value={form.age} onChange={e=>update("age",e.target.value)}/><div className="form-hint">Completed months (0–60)</div></div>
+            <div className="form-group"><label className="form-label">Sex</label><select className="form-input" value={form.gender} onChange={e=>update("gender",e.target.value)}><option value="boys">Male</option><option value="girls">Female</option></select></div>
+            <div className="form-group"><label className="form-label">Weight (kg)</label><input className="form-input" type="number" step="0.1" placeholder="e.g. 11.5" value={form.weight} onChange={e=>update("weight",e.target.value)}/><div className="form-hint">Nearest 0.1 kg</div></div>
+            <div className="form-group"><label className="form-label">Height / Length (cm)</label><input className="form-input" type="number" step="0.1" placeholder="e.g. 84.0" value={form.height} onChange={e=>update("height",e.target.value)}/><div className="form-hint">Recumbent for under 2 years</div></div>
+            <div className="form-group" style={{gridColumn:"1 / -1"}}><label className="form-label">Block</label><select className="form-input" value={form.village} onChange={e=>update("village",e.target.value)}><option>Block A</option><option>Block B</option><option>Block C</option></select></div>
+          </div>
+          <button className="btn-primary" onClick={handleSubmit} style={{width:"100%",justifyContent:"center",padding:"11px",fontSize:13.5}}><Brain size={14}/> Register & Compute WHO LMS Grade</button>
         </div>
-
-        {toast && <div className="toast"><CheckCircle size={16}/> Record saved! AI is analysing nutritional status...</div>}
-        {error && <div style={{background:"#FFF5F5",border:"1px solid #FEB2B2",borderRadius:8,padding:"10px 14px",marginBottom:16,fontSize:13,color:"#C53030"}}>{error}</div>}
-
-        <div className="form-grid">
-          <div className="form-group" style={{gridColumn:"1 / -1"}}>
-            <label className="form-label">Child's Full Name</label>
-            <input
-              className="form-input"
-              placeholder="e.g. Kavya Devi"
-              value={form.name}
-              onChange={e => update("name", e.target.value)}
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Age (months)</label>
-            <input className="form-input" type="number" placeholder="e.g. 24" value={form.age}
-              onChange={e => update("age", e.target.value)}/>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Gender</label>
-            <select className="form-input" value={form.gender} onChange={e => update("gender", e.target.value)}>
-              <option value="boys">Boy</option>
-              <option value="girls">Girl</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Weight (kg)</label>
-            <input className="form-input" type="number" step="0.1" placeholder="e.g. 11.5" value={form.weight}
-              onChange={e => update("weight", e.target.value)}/>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Height (cm)</label>
-            <input className="form-input" type="number" step="0.1" placeholder="e.g. 84.0" value={form.height}
-              onChange={e => update("height", e.target.value)}/>
-          </div>
-          <div className="form-group" style={{gridColumn:"1 / -1"}}>
-            <label className="form-label">Village / Block</label>
-            <select className="form-input" value={form.village} onChange={e => update("village", e.target.value)}>
-              <option>Block A</option>
-              <option>Block B</option>
-              <option>Block C</option>
-            </select>
-          </div>
-        </div>
-
-        <button className="btn-primary" onClick={handleSubmit} style={{width:"100%",justifyContent:"center"}}>
-          <Brain size={16}/> Save & Analyse with AI
-        </button>
       </div>
     </div>
   );
 }
 
-// ── ANALYTICS ─────────────────────────────────────────────────
-function Analytics({ children, preds, stats }) {
-  const getStatus = c => preds[c.id]?.label ?? "Normal";
-
-  const barData = [
-    { name:"Normal",    value:stats.normal,   fill:"#38A169" },
-    { name:"At Risk",   value:stats.atRisk,   fill:"#D69E2E" },
-    { name:"Moderate",  value:stats.moderate, fill:"#C05621" },
-    { name:"Severe",    value:stats.severe,   fill:"#C53030" },
-  ];
-
-  const villageData = ["Block A","Block B","Block C"].map(v => {
-    const vc     = children.filter(c => c.village === v);
-    const normal = vc.filter(c => getStatus(c) === "Normal").length;
-    const risk   = vc.length - normal;
-    return { name:v, Normal:normal, "At Risk/Critical":risk };
-  });
-
+// ANALYTICS
+function Analytics({children,grades,stats}) {
+  const barData=[{name:"Normal",value:stats.normal,fill:"#1E8449"},{name:"MAM",value:stats.mam,fill:"#CA6F1E"},{name:"SAM",value:stats.sam,fill:"#B03A2E"}];
+  const vData=["Block A","Block B","Block C"].map(v=>{const vc=children.filter(c=>c.village===v);return {name:v,Normal:vc.filter(c=>grades[c.id]==="Normal").length,MAM:vc.filter(c=>grades[c.id]==="MAM").length,SAM:vc.filter(c=>grades[c.id]==="SAM").length};});
+  const gam=stats.sam+stats.mam,gamRate=stats.total>0?Math.round(gam/stats.total*100):0;
   return (
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20}}>
-
-      {/* Bar Chart */}
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
       <div className="card" style={{gridColumn:"1 / -1"}}>
-        <div className="section-title" style={{marginBottom:18}}>Nutritional Status Distribution</div>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={barData} margin={{left:-10,right:10}}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F0F4F8"/>
-            <XAxis dataKey="name" tick={{fontSize:12}}/>
-            <YAxis tick={{fontSize:12}} allowDecimals={false}/>
-            <Tooltip contentStyle={{fontSize:12,borderRadius:10}}/>
-            <Bar dataKey="value" name="Children">
-              {barData.map((entry, i) => (
-                <rect key={i} fill={entry.fill}/>
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-
-        {/* Progress bars */}
-        <div style={{marginTop:16}}>
-          {[
-            {label:"Normal",               value:stats.normal,   color:"#38A169"},
-            {label:"At Risk",              value:stats.atRisk,   color:"#D69E2E"},
-            {label:"Moderate Malnutrition",value:stats.moderate, color:"#C05621"},
-            {label:"Severe Malnutrition",  value:stats.severe,   color:"#C53030"},
-          ].map(d => (
-            <div key={d.label} style={{marginBottom:12}}>
-              <div style={{display:"flex",justifyContent:"space-between",fontSize:13,marginBottom:5}}>
-                <span style={{fontWeight:600,color:d.color}}>{d.label}</span>
-                <span style={{color:"#4A5568"}}>{d.value} children · {stats.total>0?Math.round(d.value/stats.total*100):0}%</span>
-              </div>
-              <div className="progress-bar">
-                <div className="progress-fill" style={{background:d.color,width:`${stats.total>0?d.value/stats.total*100:0}%`}}/>
-              </div>
-            </div>
-          ))}
+        <div className="card-header"><div><div className="card-title">WHO Programme Indicators — March 2026</div><div className="card-subtitle">Coimbatore District ICDS · SAM/MAM/GAM vs WHO thresholds</div></div></div>
+        <div className="card-body" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
+          {[{label:"GAM Rate",value:`${gamRate}%`,sub:"SAM+MAM/Total",col:"#B03A2E",bg:"#FDEDEC",note:gamRate>15?"⚠ WHO Emergency":"Threshold: 15%"},
+            {label:"SAM Rate",value:`${stats.total>0?Math.round(stats.sam/stats.total*100):0}%`,sub:"Severe cases",col:"#B03A2E",bg:"#FDEDEC",note:"Emergency: >2%"},
+            {label:"MAM Rate",value:`${stats.total>0?Math.round(stats.mam/stats.total*100):0}%`,sub:"Moderate cases",col:"#CA6F1E",bg:"#FEF5E7",note:"Alert: >10%"},
+            {label:"Coverage",value:`${stats.total}`,sub:"Assessed",col:"#00509E",bg:"#EBF3FB",note:"Target: 100%"},
+          ].map(d=>(<div key={d.label} style={{background:d.bg,borderRadius:4,padding:"14px 16px",borderLeft:`3px solid ${d.col}`}}><div style={{fontFamily:"IBM Plex Mono",fontSize:24,fontWeight:700,color:d.col}}>{d.value}</div><div style={{fontSize:12,fontWeight:700,color:d.col,margin:"3px 0"}}>{d.label}</div><div style={{fontSize:10.5,color:"#7A92A8"}}>{d.sub}</div><div style={{fontSize:10,color:d.col,marginTop:4,fontFamily:"IBM Plex Mono",background:"rgba(0,0,0,0.05)",padding:"2px 6px",borderRadius:2,display:"inline-block"}}>{d.note}</div></div>))}
         </div>
       </div>
-
-      {/* Village Chart */}
       <div className="card">
-        <div className="section-title" style={{marginBottom:16}}>Village-wise Summary</div>
-        <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={villageData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F0F4F8"/>
-            <XAxis dataKey="name" tick={{fontSize:11}}/>
-            <YAxis tick={{fontSize:11}} allowDecimals={false}/>
-            <Tooltip contentStyle={{fontSize:12,borderRadius:10}}/>
-            <Legend wrapperStyle={{fontSize:11}}/>
-            <Bar dataKey="Normal" fill="#38A169"/>
-            <Bar dataKey="At Risk/Critical" fill="#C53030"/>
-          </BarChart>
-        </ResponsiveContainer>
-        {["Block A","Block B","Block C"].map(v => {
-          const vc   = children.filter(c => c.village === v);
-          const risk = vc.filter(c => getStatus(c) !== "Normal").length;
-          return (
-            <div key={v} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid #F0F4F8"}}>
-              <div><div style={{fontWeight:600,fontSize:14}}>{v}</div><div style={{fontSize:12,color:"#718096"}}>{vc.length} children</div></div>
-              <span className={`badge ${risk>0?"badge-red":"badge-green"}`}>{risk>0?`${risk} at risk`:"All normal"}</span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* AI Model Info */}
-      <div className="card">
-        <div className="section-title" style={{marginBottom:16}}>AI Model Details</div>
-        {[
-          {label:"Model Type",   value:"Neural Network (TensorFlow.js)"},
-          {label:"Architecture", value:"Dense 3-layer (16 → 8 → 4)"},
-          {label:"Activation",   value:"ReLU + Softmax"},
-          {label:"Inputs",       value:"WAZ, HAZ, Age (normalized)"},
-          {label:"Output",       value:"4-class nutritional status"},
-          {label:"Standard",     value:"WHO Child Growth Standards"},
-        ].map(r => (
-          <div key={r.label} style={{display:"flex",justifyContent:"space-between",padding:"8px 0",borderBottom:"1px solid #F0F4F8",fontSize:13}}>
-            <span style={{color:"#718096"}}>{r.label}</span>
-            <span style={{fontWeight:600,textAlign:"right",maxWidth:"60%"}}>{r.value}</span>
+        <div className="card-header"><div><div className="card-title">Grade Distribution</div></div></div>
+        <div className="card-body">
+          <ResponsiveContainer width="100%" height={150}>
+            <BarChart data={barData} margin={{left:-15,right:10}}>
+              <CartesianGrid strokeDasharray="3 3" stroke={CS.grid}/><XAxis dataKey="name" tick={CS.axis}/><YAxis tick={CS.axis} allowDecimals={false}/><Tooltip {...CS.tooltip}/>
+              {barData.map((d,i)=><Bar key={i} dataKey="value" name={d.name} fill={d.fill} radius={[3,3,0,0]}/>)}
+            </BarChart>
+          </ResponsiveContainer>
+          <div style={{marginTop:14}}>
+            {[{label:"Normal",value:stats.normal,color:"#1E8449"},{label:"MAM",value:stats.mam,color:"#CA6F1E"},{label:"SAM",value:stats.sam,color:"#B03A2E"}].map(d=>(<div className="progress-wrap" key={d.label}><div className="progress-label-row"><span style={{fontWeight:700,color:d.color,fontSize:12}}>{d.label}</span><span style={{fontFamily:"IBM Plex Mono",fontSize:11,color:"#3D5166",fontWeight:600}}>{d.value}/{stats.total} ({stats.total>0?Math.round(d.value/stats.total*100):0}%)</span></div><div className="progress-bar"><div className="progress-fill" style={{background:d.color,width:`${stats.total>0?d.value/stats.total*100:0}%`}}/></div></div>))}
           </div>
-        ))}
-      </div>
-
-      {/* Report */}
-      <div className="card" style={{gridColumn:"1 / -1",display:"flex",alignItems:"center",justifyContent:"space-between",flexWrap:"wrap",gap:12}}>
-        <div>
-          <div className="section-title">Monthly Report — March 2026</div>
-          <div style={{fontSize:13,color:"#718096",marginTop:4}}>Coimbatore District ICDS · Ready for submission</div>
         </div>
-        <button className="btn-primary" onClick={() => generatePDF(children, preds)}>
-          <FileText size={15}/> Download PDF Report
-        </button>
+      </div>
+      <div className="card">
+        <div className="card-header"><div><div className="card-title">Block-wise SAM/MAM</div></div></div>
+        <div className="card-body">
+          <ResponsiveContainer width="100%" height={150}>
+            <BarChart data={vData} margin={{left:-15,right:10}}>
+              <CartesianGrid strokeDasharray="3 3" stroke={CS.grid}/><XAxis dataKey="name" tick={CS.axis}/><YAxis tick={CS.axis} allowDecimals={false}/><Tooltip {...CS.tooltip}/><Legend wrapperStyle={{fontSize:11,fontFamily:"IBM Plex Sans"}}/>
+              <Bar dataKey="Normal" fill="#1E8449" radius={[3,3,0,0]}/><Bar dataKey="MAM" fill="#CA6F1E" radius={[3,3,0,0]}/><Bar dataKey="SAM" fill="#B03A2E" radius={[3,3,0,0]}/>
+            </BarChart>
+          </ResponsiveContainer>
+          {["Block A","Block B","Block C"].map(v=>{const vc=children.filter(c=>c.village===v),s=vc.filter(c=>grades[c.id]==="SAM").length,m=vc.filter(c=>grades[c.id]==="MAM").length;return (<div key={v} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"9px 0",borderBottom:"1px solid #F0F4F8",fontSize:12.5}}><div><div style={{fontWeight:600,color:"#0D1B2A"}}>{v}</div><div style={{fontSize:11,color:"#7A92A8"}}>{vc.length} registered</div></div><div style={{display:"flex",gap:6}}>{s>0&&<span className="chip chip-sam">SAM:{s}</span>}{m>0&&<span className="chip chip-mam">MAM:{m}</span>}{s===0&&m===0&&<span className="chip chip-normal">Normal</span>}</div></div>);})}
+        </div>
+      </div>
+      <div className="card" style={{gridColumn:"1 / -1"}}>
+        <div className="card-header"><div><div className="card-title">Monthly ICDS Report — March 2026</div><div className="card-subtitle">WHO LMS classification · Ready for CDPO submission</div></div><button className="btn-primary" onClick={()=>generatePDF(children,grades)}><FileText size={13}/> Download PDF</button></div>
       </div>
     </div>
   );
 }
 
-// ── CHILD DETAIL ──────────────────────────────────────────────
-function Detail({ child, preds, setScreen }) {
-  const [chartTab, setChartTab] = useState("weight");
-  if (!child) return null;
-
-  const last = child.records[child.records.length-1];
-  const waz  = getZScore(last.month, last.weight, child.gender, "weight");
-  const haz  = getZScore(last.month, last.height, child.gender, "height");
-  const s    = preds[child.id]?.label ?? "Normal";
-  const cfg  = STATUS_CFG[s];
-  const pred = preds[child.id];
-  const data = buildChartData(child, chartTab);
-
-  const StatusIcon = s === "Normal"
-    ? <CheckCircle size={22} color="#38A169"/>
-    : s === "At Risk"
-    ? <AlertTriangle size={22} color="#D69E2E"/>
-    : <TrendingDown size={22} color="#C53030"/>;
-
+// DETAIL
+function Detail({child,grades,setScreen}) {
+  const [tab,setTab]=useState("weight");
+  if(!child)return null;
+  const last=child.records[child.records.length-1];
+  const waz=lmsZScore(last.weight,last.month,child.gender,"weight"),haz=lmsZScore(last.height,last.month,child.gender,"height");
+  const g=grades[child.id]??"Normal",cfg=GRADE_CFG[g];
+  const data=buildChartData(child,tab),vel=getGrowthVelocity(child.records,tab);
   return (
     <>
-      <button className="btn-secondary" onClick={() => setScreen("children")} style={{marginBottom:20,display:"flex",alignItems:"center",gap:6}}>
-        <ArrowLeft size={15}/> Back to Children
-      </button>
-
+      <button className="btn-ghost" onClick={()=>setScreen("children")} style={{marginBottom:16}}><ArrowLeft size={13}/> Back to Registry</button>
       <div className="detail-header">
         <div className="detail-avatar">{child.gender==="boys"?"👦":"👧"}</div>
-        <div>
-          <h2 style={{fontSize:20,fontWeight:800}}>{child.name}</h2>
-          <p style={{fontSize:13,opacity:0.8,marginTop:4}}>{child.age} months · {child.gender==="boys"?"Boy":"Girl"} · {child.village}</p>
+        <div style={{flex:1}}>
+          <div style={{fontWeight:700,fontSize:20,color:"#fff"}}>{child.name}</div>
+          <div style={{fontSize:12.5,color:"rgba(255,255,255,0.65)",marginTop:5,display:"flex",gap:14,flexWrap:"wrap"}}><span>{last.month} months</span><span>·</span><span>{child.gender==="boys"?"Male":"Female"}</span><span>·</span><span style={{display:"flex",alignItems:"center",gap:3}}><MapPin size={10}/>{child.village}</span></div>
         </div>
-        {pred && (
-          <div style={{marginLeft:"auto",textAlign:"right"}}>
-            <span className={`badge ${cfg.bc}`} style={{fontSize:13,padding:"6px 14px"}}>{s}</span>
-            <div style={{fontSize:11,color:"rgba(255,255,255,0.7)",marginTop:6}}>AI Confidence: {pred.confidence}%</div>
-          </div>
-        )}
+        <div style={{textAlign:"right"}}><span className={`chip ${cfg.chip}`} style={{fontSize:12.5,padding:"5px 14px"}}>{g}</span><div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:6,fontFamily:"IBM Plex Mono"}}>{cfg.full}</div></div>
       </div>
-
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,marginBottom:20}}>
-        <div className="status-card" style={{background:cfg.bg,borderColor:cfg.border}}>
-          {StatusIcon}
-          <div>
-            <div style={{fontWeight:700,fontSize:15}}>{s}</div>
-            <div style={{fontSize:12,color:"#4A5568",marginTop:3}}>WAZ: {waz.toFixed(2)} · HAZ: {haz.toFixed(2)}</div>
-          </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+        <div className="clinical-card" style={{background:cfg.bg,borderColor:cfg.border,borderLeftColor:cfg.col}}>
+          {g==="Normal"?<CheckCircle size={20} color={cfg.col}/>:<AlertTriangle size={20} color={cfg.col}/>}
+          <div><div style={{fontWeight:700,fontSize:14,color:cfg.col}}>{cfg.full}</div><div style={{fontSize:12,color:"#3D5166",marginTop:4,fontFamily:"IBM Plex Mono"}}>WAZ: {waz.toFixed(3)}  ·  HAZ: {haz.toFixed(3)}</div>{vel&&<div style={{fontSize:11,color:"#7A92A8",marginTop:3}}>Growth velocity: {vel} {tab==="weight"?"kg":"cm"}/month</div>}</div>
         </div>
         <div className="metric-grid" style={{margin:0}}>
-          <div className="metric-card">
-            <Activity size={16} color="#2B6CB0"/>
-            <div className="metric-value" style={{color:"#2B6CB0"}}>{last.weight} kg</div>
-            <div className="metric-label">Current Weight</div>
-          </div>
-          <div className="metric-card">
-            <TrendingUp size={16} color="#276749"/>
-            <div className="metric-value" style={{color:"#276749"}}>{last.height} cm</div>
-            <div className="metric-label">Current Height</div>
-          </div>
+          <div className="metric-card"><Activity size={14} color="#00509E"/><div className="metric-value" style={{color:"#00509E"}}>{last.weight}<span style={{fontSize:13,fontWeight:400}}> kg</span></div><div className="metric-label">Weight</div></div>
+          <div className="metric-card"><TrendingUp size={14} color="#007B83"/><div className="metric-value" style={{color:"#007B83"}}>{last.height}<span style={{fontSize:13,fontWeight:400}}> cm</span></div><div className="metric-label">Height</div></div>
         </div>
       </div>
-
-      {/* Growth History Table */}
-      <div className="card" style={{marginBottom:20}}>
-        <div className="section-title" style={{marginBottom:14}}>Growth History</div>
+      <div className="card" style={{marginBottom:14}}>
+        <div className="card-header"><div className="card-title">Anthropometric History</div></div>
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Month</th><th>Weight (kg)</th><th>Height (cm)</th><th>WAZ</th><th>HAZ</th></tr></thead>
+            <thead><tr><th>Visit</th><th>Weight</th><th>Height</th><th>WAZ</th><th>HAZ</th><th>WHO Grade</th></tr></thead>
             <tbody>
-              {child.records.map((r,i) => (
-                <tr key={i}>
-                  <td>{r.month} months</td>
-                  <td>{r.weight}</td>
-                  <td>{r.height}</td>
-                  <td style={{color: getZScore(r.month,r.weight,child.gender,"weight") < -2 ? "#C53030" : "#38A169", fontWeight:600}}>
-                    {getZScore(r.month,r.weight,child.gender,"weight").toFixed(2)}
-                  </td>
-                  <td style={{color: getZScore(r.month,r.height,child.gender,"height") < -2 ? "#C53030" : "#38A169", fontWeight:600}}>
-                    {getZScore(r.month,r.height,child.gender,"height").toFixed(2)}
-                  </td>
-                </tr>
-              ))}
+              {child.records.map((r,i)=>{const rW=lmsZScore(r.weight,r.month,child.gender,"weight"),rH=lmsZScore(r.height,r.month,child.gender,"height"),rG=classifyChild(rW,rH),rC=GRADE_CFG[rG];return (<tr key={i}><td style={{fontFamily:"IBM Plex Mono",fontWeight:600,color:"#0D1B2A"}}>{r.month} mo</td><td style={{fontFamily:"IBM Plex Mono"}}>{r.weight} kg</td><td style={{fontFamily:"IBM Plex Mono"}}>{r.height} cm</td><td style={{fontFamily:"IBM Plex Mono",fontWeight:700,color:rW<-2?"#B03A2E":"#1E8449"}}>{rW.toFixed(3)}</td><td style={{fontFamily:"IBM Plex Mono",fontWeight:700,color:rH<-2?"#B03A2E":"#1E8449"}}>{rH.toFixed(3)}</td><td><span className={`chip ${rC.chip}`}>{rG}</span></td></tr>);})}
             </tbody>
           </table>
         </div>
       </div>
-
-      {/* Growth Chart */}
-      <div className="card" style={{marginBottom:20}}>
-        <div className="section-header">
-          <span className="section-title">Growth Chart vs WHO Standards</span>
-          <div style={{display:"flex",gap:8}}>
-            {["weight","height"].map(t => (
-              <button key={t} onClick={() => setChartTab(t)}
-                style={{padding:"6px 14px",borderRadius:8,border:"none",cursor:"pointer",fontSize:13,fontWeight:600,fontFamily:"Inter,sans-serif",
-                  background:chartTab===t?"#1565C0":"#EDF2F7",color:chartTab===t?"#fff":"#4A5568"}}>
-                {t==="weight"?"Weight":"Height"}
-              </button>
-            ))}
-          </div>
+      <div className="card" style={{marginBottom:14}}>
+        <div className="card-header"><div><div className="card-title">Growth Chart vs WHO Reference</div><div className="card-subtitle">LMS-derived curves · Median, −2SD, −3SD</div></div><div style={{display:"flex",gap:6}}>{["weight","height"].map(t=>(<button key={t} onClick={()=>setTab(t)} style={{padding:"6px 16px",borderRadius:3,border:tab===t?"none":"1.5px solid #D0D9E4",cursor:"pointer",fontSize:12.5,fontWeight:600,fontFamily:"IBM Plex Sans,sans-serif",background:tab===t?"#00509E":"transparent",color:tab===t?"#fff":"#3D5166"}}>{t==="weight"?"WAZ":"HAZ"}</button>))}</div></div>
+        <div className="card-body">
+          <ResponsiveContainer width="100%" height={240}>
+            <LineChart data={data} margin={{left:-10,right:10}}>
+              <CartesianGrid strokeDasharray="3 3" stroke={CS.grid}/><XAxis dataKey="age" tick={CS.axis}/><YAxis tick={CS.axis}/><Tooltip {...CS.tooltip}/><Legend wrapperStyle={{fontSize:12,fontFamily:"IBM Plex Sans"}}/>
+              <Line type="monotone" dataKey="Median" stroke="#1E8449" strokeDasharray="6 3" dot={false} strokeWidth={1.5}/>
+              <Line type="monotone" dataKey="-2SD" stroke="#CA6F1E" strokeDasharray="4 3" dot={false} strokeWidth={1.5}/>
+              <Line type="monotone" dataKey="-3SD" stroke="#B03A2E" strokeDasharray="3 3" dot={false} strokeWidth={1.5}/>
+              <Line type="monotone" dataKey="Child" stroke="#00509E" strokeWidth={2.5} dot={{fill:"#00509E",r:4,strokeWidth:0}} connectNulls={false}/>
+            </LineChart>
+          </ResponsiveContainer>
         </div>
-        <ResponsiveContainer width="100%" height={240}>
-          <LineChart data={data} margin={{left:-10,right:10}}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#F0F4F8"/>
-            <XAxis dataKey="age" tick={{fontSize:11}}/>
-            <YAxis tick={{fontSize:11}}/>
-            <Tooltip contentStyle={{fontSize:12,borderRadius:10,border:"1px solid #E2E8F0"}}/>
-            <Legend wrapperStyle={{fontSize:12}}/>
-            <Line type="monotone" dataKey="Median" stroke="#38A169" strokeDasharray="6 3" dot={false} strokeWidth={1.5}/>
-            <Line type="monotone" dataKey="-2SD"   stroke="#D69E2E" strokeDasharray="4 3" dot={false} strokeWidth={1.5}/>
-            <Line type="monotone" dataKey="-3SD"   stroke="#C53030" strokeDasharray="3 3" dot={false} strokeWidth={1.5}/>
-            <Line type="monotone" dataKey="Child"  stroke="#1565C0" strokeWidth={2.5} dot={{fill:"#1565C0",r:5}} connectNulls={false}/>
-          </LineChart>
-        </ResponsiveContainer>
       </div>
-
-      {/* AI Recommendations */}
       <div className="ai-box">
-        <h4><Brain size={15}/> AI-Generated Recommendations</h4>
-        <ul>{RECS[s]?.map((r,i) => <li key={i}>{r}</li>)}</ul>
-        {pred && (
-          <div style={{marginTop:12,fontSize:12,color:"#4A5568",borderTop:"1px solid #BEE3F8",paddingTop:10}}>
-            Model confidence: <strong>{pred.confidence}%</strong> · Powered by TensorFlow.js neural network
-          </div>
-        )}
+        <div className="ai-box-title"><ClipboardList size={12}/> Clinical Protocol — {g} ({cfg.full})</div>
+        <ul>{CLINICAL_RECS[g]?.map((r,i)=><li key={i}>{r}</li>)}</ul>
+        <div style={{marginTop:12,fontSize:11,color:"#7A92A8",borderTop:"1px solid #C2DCF5",paddingTop:10,fontFamily:"IBM Plex Mono"}}>WHO LMS Box-Cox · WAZ:{waz.toFixed(3)} HAZ:{haz.toFixed(3)} · {cfg.full} · WHO Child Growth Standards 2006</div>
       </div>
     </>
   );
 }
 
-// ════════════════════════════════════════════════════════════
-// MAIN APP — only manages state and routing
-// ════════════════════════════════════════════════════════════
+// MAIN APP
 export default function App() {
-  const [screen,   setScreen]   = useState("dashboard");
-  const [children, setChildren] = useState(INIT_CHILDREN);
-  const [selected, setSelected] = useState(null);
-  const [model,    setModel]    = useState(null);
-  const [ready,    setReady]    = useState(false);
-  const [preds,    setPreds]    = useState({});
+  const [page,setPage]=useState("landing");
+  const [user,setUser]=useState(null);
+  const [screen,setScreen]=useState("dashboard");
+  const [children,setChildren]=useState(INIT_CHILDREN);
+  const [selected,setSelected]=useState(null);
+  const [pwaEvt,setPwaEvt]=useState(null);
 
-  useEffect(() => {
-    buildModel().then(m => { setModel(m); setReady(true); });
-  }, []);
+  useEffect(()=>{
+    const handler=e=>{e.preventDefault();setPwaEvt(e);};
+    window.addEventListener("beforeinstallprompt",handler);
+    return ()=>window.removeEventListener("beforeinstallprompt",handler);
+  },[]);
 
-  useEffect(() => {
-    if (!model) return;
-    (async () => {
-      const p = {};
-      for (const c of children) {
-        const last = c.records[c.records.length-1];
-        const waz  = getZScore(last.month, last.weight, c.gender, "weight");
-        const haz  = getZScore(last.month, last.height, c.gender, "height");
-        p[c.id] = await predict(model, waz, haz, last.month);
-      }
-      setPreds(p);
-    })();
-  }, [model, children]);
+  const handleInstall=async()=>{if(!pwaEvt)return;pwaEvt.prompt();const r=await pwaEvt.userChoice;if(r.outcome==="accepted")setPwaEvt(null);};
 
-  const stats = {
-    total:    children.length,
-    normal:   children.filter(c => (preds[c.id]?.label??"Normal") === "Normal").length,
-    atRisk:   children.filter(c => (preds[c.id]?.label??"Normal") === "At Risk").length,
-    moderate: children.filter(c => (preds[c.id]?.label??"Normal") === "Moderate Malnutrition").length,
-    severe:   children.filter(c => (preds[c.id]?.label??"Normal") === "Severe Malnutrition").length,
-  };
+  const grades={};
+  children.forEach(c=>{const last=c.records[c.records.length-1];const waz=lmsZScore(last.weight,last.month,c.gender,"weight");const haz=lmsZScore(last.height,last.month,c.gender,"height");grades[c.id]=classifyChild(waz,haz);});
 
-  const goDetail = useCallback(child => { setSelected(child); setScreen("detail"); }, []);
-  const handleAdd = useCallback(child => { setChildren(p => [...p, child]); }, []);
+  const stats={total:children.length,normal:children.filter(c=>grades[c.id]==="Normal").length,mam:children.filter(c=>grades[c.id]==="MAM").length,sam:children.filter(c=>grades[c.id]==="SAM").length};
 
-  const meta = {
-    dashboard:{ title:"Dashboard",   sub:"Coimbatore District · March 2026" },
-    children: { title:"Children",    sub:`${children.length} registered children` },
-    add:      { title:"Add Record",  sub:"Register new child measurement" },
-    analytics:{ title:"Analytics",   sub:"Nutritional status overview" },
-    detail:   { title:selected?.name??"", sub:`${selected?.age??""} months · ${selected?.village??""}` },
-  };
-  const pt = meta[screen] ?? meta.dashboard;
+  const goDetail=useCallback(c=>{setSelected(c);setScreen("detail");},[]);
+  const handleAdd=useCallback(c=>setChildren(p=>[...p,c]),[]);
+  const handleLogin=useCallback(u=>{setUser(u);setPage("app");},[]);
+  const handleLogout=useCallback(()=>{setUser(null);setPage("landing");setScreen("dashboard");},[]);
+
+  if(page==="landing")return <LandingPage onLogin={()=>setPage("login")}/>;
+  if(page==="login")return <LoginPage onLogin={handleLogin}/>;
+
+  const meta={dashboard:{title:"Dashboard",sub:"Coimbatore District · March 2026"},children:{title:"Child Registry",sub:`${children.length} children · WHO LMS graded`},add:{title:"Register Child",sub:"New anthropometric measurement"},analytics:{title:"Analytics & Reports",sub:"SAM/MAM/GAM indicators"},detail:{title:selected?.name??"",sub:`${selected?.records?.[selected.records.length-1]?.month??""} months · ${selected?.village??""}`}};
+  const pt=meta[screen]??meta.dashboard;
 
   return (
     <div className="app-shell">
-      {/* Sidebar */}
       <aside className="sidebar">
-        <div className="sidebar-logo">
-          <h1>🌱 NutriGrid</h1>
-          <p>AI Child Growth Monitoring</p>
-        </div>
+        <div className="sidebar-logo" onClick={()=>setPage("landing")}><div className="logo-icon">🌱</div><div className="logo-text"><h1>NutriGrid</h1><p>ICDS Monitoring System</p></div></div>
         <nav className="sidebar-nav">
-          {NAV.map(({id,label,Icon}) => (
-            <button key={id} className={`nav-item ${screen===id?"active":""}`} onClick={() => setScreen(id)}>
-              <Icon size={18}/> {label}
-            </button>
-          ))}
+          <div className="nav-section-label">Navigation</div>
+          {NAV.map(({id,label,Icon})=>(<button key={id} className={`nav-item ${screen===id?"active":""}`} onClick={()=>setScreen(id)}><Icon size={15}/> {label}</button>))}
         </nav>
         <div className="sidebar-footer">
-          <div className="role-badge">
-            <strong>👩‍⚕️ Anganwadi Worker</strong>
-            Coimbatore District
-          </div>
+          <div className="user-card"><div className="user-avatar">{user?.emoji??"👩‍⚕️"}</div><div><strong>{user?.name??"Worker"}</strong><span>{user?.block??"Coimbatore"}</span></div></div>
+          <button onClick={handleLogout} style={{marginTop:8,width:"100%",padding:"7px",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:4,color:"rgba(255,255,255,0.5)",fontSize:11.5,cursor:"pointer",fontFamily:"IBM Plex Sans",display:"flex",alignItems:"center",justifyContent:"center",gap:6,transition:"all 0.15s"}} onMouseOver={e=>{e.currentTarget.style.color="#fff";e.currentTarget.style.background="rgba(255,255,255,0.12)"}} onMouseOut={e=>{e.currentTarget.style.color="rgba(255,255,255,0.5)";e.currentTarget.style.background="rgba(255,255,255,0.06)"}}><LogOut size={13}/> Sign Out</button>
         </div>
       </aside>
-
-      {/* Main */}
       <main className="main-content">
         <div className="top-bar">
-          <div><h2>{pt.title}</h2><p>{pt.sub}</p></div>
-          <div style={{display:"flex",alignItems:"center",gap:8}}>
-            <div style={{width:8,height:8,borderRadius:4,background:ready?"#38A169":"#D69E2E"}}/>
-            <span style={{fontSize:12,color:"#718096"}}>{ready?"AI Active":"Training AI..."}</span>
+          <div className="top-bar-breadcrumb"><span>NutriGrid</span><ChevronRight size={13}/><span className="current">{pt.title}</span></div>
+          <div className="top-bar-right">
+            {pwaEvt&&<button className="pwa-install-btn" onClick={handleInstall}><Download size={13}/> Install App</button>}
+            <button className="btn-ghost" onClick={()=>setPage("landing")} style={{fontSize:12}}>← Home</button>
+            <div className="ai-status"><div className="status-dot"/>WHO LMS ACTIVE</div>
           </div>
         </div>
         <div className="page-body">
-          {screen==="dashboard" && <Dashboard children={children} preds={preds} stats={stats} goDetail={goDetail}/>}
-          {screen==="children"  && <ChildrenList children={children} preds={preds} goDetail={goDetail} setScreen={setScreen}/>}
-          {screen==="add"       && <AddRecord onAdd={child => { handleAdd(child); }}/>}
-          {screen==="analytics" && <Analytics children={children} preds={preds} stats={stats}/>}
-          {screen==="detail"    && <Detail child={selected} preds={preds} setScreen={setScreen}/>}
+          <div className="page-title-bar"><div><h2>{pt.title}</h2><p>{pt.sub}</p></div>{user&&<div style={{fontSize:11.5,color:"#7A92A8",textAlign:"right",fontFamily:"IBM Plex Mono"}}>{user.emoji} {user.name}<br/><span style={{fontSize:10}}>{user.role}</span></div>}</div>
+          {screen==="dashboard"&&<Dashboard children={children} grades={grades} stats={stats} goDetail={goDetail}/>}
+          {screen==="children" &&<ChildrenList children={children} grades={grades} goDetail={goDetail} setScreen={setScreen}/>}
+          {screen==="add"      &&<AddRecord onAdd={handleAdd}/>}
+          {screen==="analytics"&&<Analytics children={children} grades={grades} stats={stats}/>}
+          {screen==="detail"   &&<Detail child={selected} grades={grades} setScreen={setScreen}/>}
         </div>
       </main>
-
-      {/* Mobile nav */}
-      <nav className="mobile-nav">
-        <div className="mobile-nav-inner">
-          {NAV.map(({id,label,Icon}) => (
-            <button key={id} className={`mobile-nav-item ${screen===id?"active":""}`} onClick={() => setScreen(id)}>
-              <Icon size={20}/> {label}
-            </button>
-          ))}
-        </div>
-      </nav>
+      <nav className="mobile-nav"><div className="mobile-nav-inner">{NAV.map(({id,label,Icon})=>(<button key={id} className={`mobile-nav-item ${screen===id?"active":""}`} onClick={()=>setScreen(id)}><Icon size={18}/> {label}</button>))}</div></nav>
     </div>
   );
 }
+
