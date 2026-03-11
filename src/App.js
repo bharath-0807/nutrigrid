@@ -88,6 +88,200 @@ function buildChartData(child, tab) {
   return table.map(s=>({age:`${s.age}m`,Child:pts[s.age]??null,Median:s.med,"-2SD":s.sd2n,"-3SD":s.sd3n}));
 }
 
+// ═══════════════════════════════════════════════════════════
+// ICMR FOOD COMPOSITION TABLE (Indian foods)
+// Source: ICMR-NIN Nutritive Value of Indian Foods (2017)
+// Per 100g values: calories(kcal), protein(g), iron(mg),
+//                  vitA(mcg), zinc(mg), calcium(mg)
+// ═══════════════════════════════════════════════════════════
+const ICMR_FOODS = [
+  // Cereals
+  {id:"rice",     name:"Rice (cooked)",     unit:"bowl(150g)", grams:150, cal:195, pro:4.0, iron:0.5, vitA:0,   zinc:0.8, cal2:10,  emoji:"🍚"},
+  {id:"roti",     name:"Wheat Roti",        unit:"piece(30g)", grams:30,  cal:90,  pro:2.7, iron:0.9, vitA:0,   zinc:0.5, cal2:10,  emoji:"🫓"},
+  {id:"idli",     name:"Idli",              unit:"piece(40g)", grams:40,  cal:58,  pro:2.0, iron:0.6, vitA:0,   zinc:0.3, cal2:8,   emoji:"🫓"},
+  {id:"dosa",     name:"Dosa",              unit:"piece(50g)", grams:50,  cal:78,  pro:2.5, iron:0.7, vitA:0,   zinc:0.4, cal2:8,   emoji:"🫓"},
+  {id:"upma",     name:"Upma (semolina)",   unit:"bowl(100g)", grams:100, cal:145, pro:4.0, iron:1.5, vitA:0,   zinc:0.7, cal2:15,  emoji:"🍲"},
+  // Pulses / Protein
+  {id:"dal",      name:"Dal (cooked)",      unit:"bowl(100g)", grams:100, cal:116, pro:7.6, iron:3.0, vitA:3,   zinc:1.0, cal2:30,  emoji:"🍲"},
+  {id:"egg",      name:"Egg (whole)",       unit:"egg(50g)",   grams:50,  cal:77,  pro:6.3, iron:0.9, vitA:90,  zinc:0.6, cal2:25,  emoji:"🥚"},
+  {id:"milk",     name:"Cow's Milk",        unit:"glass(200ml)",grams:200,cal:130, pro:6.6, iron:0.2, vitA:60,  zinc:0.8, cal2:240, emoji:"🥛"},
+  {id:"curd",     name:"Curd / Yoghurt",   unit:"bowl(100g)", grams:100, cal:98,  pro:3.1, iron:0.2, vitA:28,  zinc:0.5, cal2:120, emoji:"🥛"},
+  {id:"chicken",  name:"Chicken (cooked)", unit:"piece(60g)", grams:60,  cal:114, pro:14.4,iron:0.8, vitA:18,  zinc:1.4, cal2:8,   emoji:"🍗"},
+  {id:"fish",     name:"Fish (cooked)",    unit:"piece(60g)", grams:60,  cal:78,  pro:13.2,iron:1.0, vitA:30,  zinc:0.8, cal2:30,  emoji:"🐟"},
+  // Vegetables
+  {id:"greens",   name:"Green Leafy Veg",  unit:"bowl(50g)",  grams:50,  cal:26,  pro:2.5, iron:2.5, vitA:265, zinc:0.3, cal2:190, emoji:"🥬"},
+  {id:"carrot",   name:"Carrot",           unit:"medium(60g)",grams:60,  cal:25,  pro:0.6, iron:0.4, vitA:503, zinc:0.2, cal2:20,  emoji:"🥕"},
+  {id:"tomato",   name:"Tomato",           unit:"medium(80g)",grams:80,  cal:18,  pro:0.9, iron:0.5, vitA:42,  zinc:0.2, cal2:10,  emoji:"🍅"},
+  {id:"potato",   name:"Potato (boiled)",  unit:"medium(80g)",grams:80,  cal:77,  pro:1.6, iron:0.4, vitA:0,   zinc:0.3, cal2:8,   emoji:"🥔"},
+  // Fruits
+  {id:"banana",   name:"Banana",           unit:"medium(80g)",grams:80,  cal:73,  pro:0.9, iron:0.3, vitA:3,   zinc:0.2, cal2:5,   emoji:"🍌"},
+  {id:"mango",    name:"Mango",            unit:"slice(80g)", grams:80,  cal:50,  pro:0.5, iron:0.2, vitA:383, zinc:0.1, cal2:11,  emoji:"🥭"},
+  {id:"papaya",   name:"Papaya",           unit:"slice(80g)", grams:80,  cal:32,  pro:0.5, iron:0.2, vitA:204, zinc:0.1, cal2:24,  emoji:"🍊"},
+  // Others
+  {id:"peanut",   name:"Groundnut/Peanut", unit:"tbsp(15g)",  grams:15,  cal:85,  pro:3.8, iron:0.6, vitA:0,   zinc:0.6, cal2:12,  emoji:"🥜"},
+  {id:"jaggery",  name:"Jaggery",          unit:"tsp(10g)",   grams:10,  cal:38,  pro:0.1, iron:2.8, vitA:0,   zinc:0.1, cal2:8,   emoji:"🟤"},
+];
+
+// ICMR RDA for children (per day) by age group
+// Source: ICMR Recommended Dietary Allowances (2020)
+function getRDA(ageMonths) {
+  if (ageMonths <= 6)  return {cal:520,  pro:1.2,  iron:0,   vitA:350, zinc:2.8,  label:"0–6 mo"};
+  if (ageMonths <= 12) return {cal:650,  pro:1.2,  iron:5,   vitA:350, zinc:2.8,  label:"6–12 mo"};
+  if (ageMonths <= 36) return {cal:1000, pro:16.7, iron:9,   vitA:400, zinc:8.3,  label:"1–3 yr"};
+  if (ageMonths <= 60) return {cal:1350, pro:20.1, iron:13,  vitA:400, zinc:11.0, label:"3–5 yr"};
+  return                      {cal:1350, pro:20.1, iron:13,  vitA:400, zinc:11.0, label:"5 yr+"};
+}
+
+// Calculate daily nutrients from food intake
+function calcNutrients(intake) {
+  let cal=0, pro=0, iron=0, vitA=0, zinc=0;
+  intake.forEach(({foodId, qty}) => {
+    const f = ICMR_FOODS.find(x => x.id === foodId);
+    if (!f) return;
+    const factor = qty * f.grams / 100;
+    cal  += f.cal  * factor;
+    pro  += f.pro  * factor;
+    iron += f.iron * factor;
+    vitA += f.vitA * factor;
+    zinc += f.zinc * factor;
+  });
+  return { cal:Math.round(cal), pro:+pro.toFixed(1), iron:+iron.toFixed(1), vitA:Math.round(vitA), zinc:+zinc.toFixed(1) };
+}
+
+// WHO growth velocity (weight gain per month) by age group
+// Source: WHO Child Growth Standards — velocity tables
+function getExpectedWeightGainPerMonth(ageMonths) {
+  if (ageMonths <= 3)  return 0.90; // ~900g/month in first trimester
+  if (ageMonths <= 6)  return 0.60;
+  if (ageMonths <= 12) return 0.35;
+  if (ageMonths <= 24) return 0.22;
+  if (ageMonths <= 36) return 0.18;
+  if (ageMonths <= 60) return 0.15;
+  return 0.15;
+}
+
+// Predict future WAZ based on diet adequacy
+// Logic: if calorie adequacy < 80% → growth faltering
+//        80–100% → maintenance, 100%+ → catch-up growth
+function predictGrowth(child, intake, months) {
+  const last    = child.records[child.records.length - 1];
+  const rda     = getRDA(last.month);
+  const nuts    = calcNutrients(intake);
+  const calAdequacy = rda.cal > 0 ? nuts.cal / rda.cal : 0;
+
+  // Growth velocity multiplier based on diet quality
+  const velocityFactor = calAdequacy < 0.5  ? 0.2
+                       : calAdequacy < 0.7  ? 0.5
+                       : calAdequacy < 0.85 ? 0.8
+                       : calAdequacy < 1.0  ? 1.0
+                       : 1.25; // catch-up growth if diet is adequate+
+
+  const points = [];
+  let currentWeight = last.weight;
+  let currentAge    = last.month;
+
+  for (let m = 1; m <= months; m++) {
+    const expectedGain    = getExpectedWeightGainPerMonth(currentAge + m);
+    const actualGain      = expectedGain * velocityFactor;
+    currentWeight        += actualGain;
+    const predictedWeight = currentWeight;
+    const optimalWeight   = last.weight + (expectedGain * 1.15 * m);
+    const futureAge       = currentAge + m;
+
+    const predWAZ    = lmsZScore(predictedWeight, Math.min(futureAge, 60), child.gender, "weight");
+    const optimalWAZ = lmsZScore(optimalWeight,   Math.min(futureAge, 60), child.gender, "weight");
+
+    points.push({
+      month: `+${m}mo`,
+      "Current Diet WAZ": +predWAZ.toFixed(2),
+      "Optimal Diet WAZ": +optimalWAZ.toFixed(2),
+      "SAM Threshold":    -3,
+      "MAM Threshold":    -2,
+    });
+  }
+  return { points, calAdequacy, velocityFactor };
+}
+
+// Generate food gap recommendations
+function getDietGaps(intake, ageMonths) {
+  const nuts = calcNutrients(intake);
+  const rda  = getRDA(ageMonths);
+  const gaps = [];
+  if (nuts.cal  < rda.cal  * 0.85) gaps.push({nutrient:"Energy",    got:nuts.cal,   need:rda.cal,   unit:"kcal", foods:"Rice, roti, banana, peanut",    severity:nuts.cal/rda.cal});
+  if (nuts.pro  < rda.pro  * 0.85) gaps.push({nutrient:"Protein",   got:nuts.pro,   need:rda.pro,   unit:"g",    foods:"Dal, egg, milk, chicken, fish",  severity:nuts.pro/rda.pro});
+  if (nuts.iron < rda.iron * 0.75) gaps.push({nutrient:"Iron",      got:nuts.iron,  need:rda.iron,  unit:"mg",   foods:"Green leafy veg, dal, jaggery",  severity:nuts.iron/rda.iron});
+  if (nuts.vitA < rda.vitA * 0.75) gaps.push({nutrient:"Vitamin A", got:nuts.vitA,  need:rda.vitA,  unit:"mcg",  foods:"Carrot, mango, egg, green leaves",severity:nuts.vitA/rda.vitA});
+  if (nuts.zinc < rda.zinc * 0.75) gaps.push({nutrient:"Zinc",      got:nuts.zinc,  need:rda.zinc,  unit:"mg",   foods:"Chicken, fish, dal, peanut",     severity:nuts.zinc/rda.zinc});
+  return { gaps, nuts, rda };
+}
+
+// Individual Child PDF report
+function generateChildPDF(child, grade, waz, haz) {
+  const doc = new jsPDF();
+  const cfg = GRADE_CFG[grade] ?? GRADE_CFG["Normal"];
+  const last = child.records[child.records.length - 1];
+
+  // Header
+  doc.setFillColor(0,59,115); doc.rect(0,0,210,36,"F");
+  doc.setFillColor(0,80,158); doc.rect(0,32,210,4,"F");
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(15); doc.setFont("helvetica","bold");
+  doc.text("NutriGrid — Individual Child Nutritional Report",14,14);
+  doc.setFontSize(8.5); doc.setFont("helvetica","normal");
+  doc.text("Coimbatore District ICDS · March 2026 · WHO LMS Box-Cox Algorithm",14,24);
+  doc.text("For use by Anganwadi Workers, PHC staff & parents",14,31);
+
+  // Child info box
+  doc.setTextColor(10,10,26);
+  doc.setFontSize(12); doc.setFont("helvetica","bold");
+  doc.text("Child Information",14,46);
+  autoTable(doc,{startY:50,head:[["Field","Details"]],
+    body:[
+      ["Name",          child.name],
+      ["Age",           `${last.month} months`],
+      ["Sex",           child.gender==="boys"?"Male":"Female"],
+      ["Block/Village", child.village],
+      ["Weight",        `${last.weight} kg`],
+      ["Height",        `${last.height} cm`],
+      ["WAZ (LMS)",     waz.toFixed(3)],
+      ["HAZ (LMS)",     haz.toFixed(3)],
+      ["WHO Grade",     `${grade} — ${cfg.full}`],
+      ["Method",        "WHO LMS Box-Cox Z-score (2006)"],
+    ],
+    headStyles:{fillColor:[0,59,115]}, alternateRowStyles:{fillColor:[240,244,248]},
+  });
+
+  // Growth history
+  doc.setFontSize(12); doc.setFont("helvetica","bold");
+  doc.text("Growth History",14,doc.lastAutoTable.finalY+12);
+  autoTable(doc,{startY:doc.lastAutoTable.finalY+16,
+    head:[["Visit (months)","Weight (kg)","Height (cm)","WAZ","HAZ","Grade"]],
+    body: child.records.map(r=>{
+      const rWaz=lmsZScore(r.weight,r.month,child.gender,"weight");
+      const rHaz=lmsZScore(r.height,r.month,child.gender,"height");
+      const rg  =classifyChild(rWaz,rHaz);
+      return [`${r.month} mo`, r.weight, r.height, rWaz.toFixed(2), rHaz.toFixed(2), rg];
+    }),
+    headStyles:{fillColor:[0,59,115],fontSize:8}, bodyStyles:{fontSize:8},
+    alternateRowStyles:{fillColor:[240,244,248]},
+  });
+
+  // Recommendations
+  doc.setFontSize(12); doc.setFont("helvetica","bold");
+  doc.text(`Clinical Recommendations — ${grade}`,14,doc.lastAutoTable.finalY+12);
+  const recRows = (CLINICAL_RECS[grade]??[]).map((r,i)=>[(i+1).toString(),r]);
+  autoTable(doc,{startY:doc.lastAutoTable.finalY+16,
+    head:[["#","Recommendation"]],
+    body: recRows,
+    headStyles:{fillColor:[0,59,115],fontSize:8}, bodyStyles:{fontSize:8},
+    alternateRowStyles:{fillColor:[240,244,248]},
+  });
+
+  doc.setFontSize(7.5); doc.setTextColor(120,140,160);
+  doc.text(`NutriGrid · WHO Child Growth Standards (2006) · Niral Thiruvizha 3.0 · Jansons Institute of Technology, Coimbatore`,14,284);
+  doc.save(`NutriGrid_${child.name.replace(/ /g,"_")}_Report.pdf`);
+}
+
 const INIT_CHILDREN = [
   {id:1,name:"Aarav Kumar",  age:24,gender:"boys", village:"Block A",records:[{month:0,weight:3.2,height:49.5},{month:6,weight:6.8,height:64.0},{month:12,weight:8.5,height:72.0},{month:18,weight:9.8,height:78.0},{month:24,weight:10.9,height:83.0}]},
   {id:2,name:"Priya Selvi",  age:36,gender:"girls",village:"Block B",records:[{month:0,weight:2.8,height:47.5},{month:6,weight:5.2,height:61.0},{month:12,weight:6.8,height:69.0},{month:18,weight:8.0,height:75.0},{month:24,weight:9.0,height:81.0},{month:30,weight:10.0,height:87.0},{month:36,weight:11.2,height:91.5}]},
@@ -445,65 +639,388 @@ function Analytics({children,grades,stats}) {
   );
 }
 
+// ── DIET FORECAST PANEL ────────────────────────────────────
+function DietForecast({ child, grade }) {
+  const last = child.records[child.records.length - 1];
+  const rda  = getRDA(last.month);
+
+  // intake state: [{foodId, qty}]
+  const [intake,     setIntake]     = useState([]);
+  const [horizon,    setHorizon]    = useState(6);
+  const [computed,   setComputed]   = useState(false);
+  const [forecast,   setForecast]   = useState(null);
+  const [gapResult,  setGapResult]  = useState(null);
+
+  const addFood = (foodId) => {
+    if (intake.find(i => i.foodId === foodId)) return;
+    setIntake(p => [...p, {foodId, qty:1}]);
+    setComputed(false);
+  };
+  const setQty = (foodId, qty) => {
+    setIntake(p => p.map(i => i.foodId===foodId ? {...i, qty:Math.max(0.5, +qty)} : i));
+    setComputed(false);
+  };
+  const removeFood = (foodId) => { setIntake(p => p.filter(i => i.foodId !== foodId)); setComputed(false); };
+
+  const handleCompute = () => {
+    if (intake.length === 0) return;
+    const {points, calAdequacy, velocityFactor} = predictGrowth(child, intake, horizon);
+    const gd = getDietGaps(intake, last.month);
+    setForecast({points, calAdequacy, velocityFactor});
+    setGapResult(gd);
+    setComputed(true);
+  };
+
+  const nuts = intake.length > 0 ? calcNutrients(intake) : null;
+
+  const tabStyle = (active) => ({
+    padding:"5px 14px", borderRadius:3, border:active?"none":"1.5px solid #D0D9E4",
+    cursor:"pointer", fontSize:12, fontWeight:600,
+    fontFamily:"IBM Plex Sans,sans-serif",
+    background:active?"#00509E":"transparent", color:active?"#fff":"#3D5166",
+    transition:"all 0.15s",
+  });
+
+  // Group foods by category
+  const FOOD_GROUPS = [
+    {label:"🍚 Cereals",   ids:["rice","roti","idli","dosa","upma"]},
+    {label:"🥚 Protein",   ids:["dal","egg","milk","curd","chicken","fish"]},
+    {label:"🥬 Vegetables",ids:["greens","carrot","tomato","potato"]},
+    {label:"🍌 Fruits",    ids:["banana","mango","papaya"]},
+    {label:"🥜 Others",    ids:["peanut","jaggery"]},
+  ];
+
+  return (
+    <div>
+      {/* ICMR RDA reference */}
+      <div style={{background:"#EBF3FB",border:"1px solid #C2DCF5",borderLeft:"4px solid #00509E",borderRadius:6,padding:"11px 16px",marginBottom:14,display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+        <Brain size={15} color="#00509E"/>
+        <div style={{fontSize:12.5,color:"#00509E",fontWeight:600}}>ICMR RDA for {last.month} months ({rda.label})</div>
+        {[{k:"Energy",v:`${rda.cal} kcal`},{k:"Protein",v:`${rda.pro}g`},{k:"Iron",v:`${rda.iron}mg`},{k:"Vit-A",v:`${rda.vitA}mcg`},{k:"Zinc",v:`${rda.zinc}mg`}].map(r=>(
+          <div key={r.k} style={{background:"#fff",border:"1px solid #C2DCF5",borderRadius:3,padding:"3px 10px",fontSize:11.5,fontFamily:"IBM Plex Mono",color:"#00509E",fontWeight:700}}>
+            {r.k}: {r.v}
+          </div>
+        ))}
+      </div>
+
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
+        {/* Food selection */}
+        <div className="card">
+          <div className="card-header"><div><div className="card-title">Step 1 — Enter Daily Food Intake</div><div className="card-subtitle">Select foods the child eats daily · ICMR food composition table</div></div></div>
+          <div className="card-body" style={{maxHeight:360,overflowY:"auto"}}>
+            {FOOD_GROUPS.map(grp => (
+              <div key={grp.label} style={{marginBottom:12}}>
+                <div style={{fontSize:10.5,fontWeight:700,color:"#7A92A8",textTransform:"uppercase",letterSpacing:"0.8px",marginBottom:6}}>{grp.label}</div>
+                <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+                  {grp.ids.map(id => {
+                    const f = ICMR_FOODS.find(x=>x.id===id);
+                    const selected = intake.find(i=>i.foodId===id);
+                    return (
+                      <button key={id} onClick={()=>addFood(id)}
+                        style={{padding:"4px 10px",borderRadius:3,border:`1.5px solid ${selected?"#00509E":"#D0D9E4"}`,cursor:"pointer",fontSize:11.5,fontWeight:selected?700:400,fontFamily:"IBM Plex Sans,sans-serif",background:selected?"#EBF3FB":"#fff",color:selected?"#00509E":"#3D5166",transition:"all 0.15s"}}>
+                        {f?.emoji} {f?.name.split("(")[0].trim()}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Quantity + nutrient live meter */}
+        <div className="card">
+          <div className="card-header"><div><div className="card-title">Step 2 — Portions & Nutrient Meter</div><div className="card-subtitle">Adjust servings — live vs ICMR RDA</div></div></div>
+          <div className="card-body">
+            {intake.length === 0 ? (
+              <div style={{textAlign:"center",padding:"32px 0",color:"#7A92A8",fontSize:13}}>
+                <Zap size={22} color="#D0D9E4" style={{margin:"0 auto 8px",display:"block"}}/>
+                Select foods from the left panel
+              </div>
+            ) : (
+              <>
+                {intake.map(({foodId, qty}) => {
+                  const f = ICMR_FOODS.find(x=>x.id===foodId);
+                  return (
+                    <div key={foodId} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 0",borderBottom:"1px solid #F0F4F8"}}>
+                      <span style={{fontSize:16,flexShrink:0}}>{f?.emoji}</span>
+                      <span style={{flex:1,fontSize:12.5,fontWeight:600,color:"#0D1B2A"}}>{f?.name.split("(")[0].trim()}</span>
+                      <span style={{fontSize:10.5,color:"#7A92A8",flexShrink:0}}>{f?.unit}</span>
+                      <input type="number" min="0.5" max="5" step="0.5" value={qty}
+                        onChange={e=>setQty(foodId,e.target.value)}
+                        style={{width:52,padding:"3px 6px",border:"1.5px solid #D0D9E4",borderRadius:3,fontSize:12,fontFamily:"IBM Plex Mono",textAlign:"center"}}/>
+                      <button onClick={()=>removeFood(foodId)} style={{background:"none",border:"none",cursor:"pointer",color:"#B03A2E",fontSize:15,padding:"0 2px",lineHeight:1}}>×</button>
+                    </div>
+                  );
+                })}
+
+                {/* Live nutrient bar */}
+                {nuts && (
+                  <div style={{marginTop:14}}>
+                    {[{k:"Energy",got:nuts.cal,need:rda.cal,unit:"kcal",col:"#00509E"},
+                      {k:"Protein",got:nuts.pro,need:rda.pro,unit:"g",col:"#007B83"},
+                      {k:"Iron",got:nuts.iron,need:rda.iron,unit:"mg",col:"#CA6F1E"},
+                      {k:"Vit-A",got:nuts.vitA,need:rda.vitA,unit:"mcg",col:"#8E44AD"},
+                      {k:"Zinc",got:nuts.zinc,need:rda.zinc,unit:"mg",col:"#1E8449"},
+                    ].map(n => {
+                      const pct = Math.min(100, rda[n.k==="Energy"?"cal":n.k==="Protein"?"pro":n.k==="Iron"?"iron":n.k==="Vit-A"?"vitA":"zinc"]>0 ? n.got/n.need*100 : 0);
+                      const ok  = pct >= 85;
+                      return (
+                        <div key={n.k} style={{marginBottom:8}}>
+                          <div style={{display:"flex",justifyContent:"space-between",fontSize:11.5,marginBottom:3}}>
+                            <span style={{fontWeight:700,color:ok?n.col:"#B03A2E"}}>{n.k}</span>
+                            <span style={{fontFamily:"IBM Plex Mono",fontSize:11,color:ok?"#1E8449":"#B03A2E",fontWeight:700}}>{n.got}{n.unit} / {n.need}{n.unit} ({Math.round(pct)}%)</span>
+                          </div>
+                          <div style={{background:"#EEF2F7",borderRadius:2,height:7,overflow:"hidden"}}>
+                            <div style={{height:"100%",borderRadius:2,background:ok?n.col:"#B03A2E",width:`${pct}%`,transition:"width 0.4s ease"}}/>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Forecast controls */}
+      <div className="card" style={{marginBottom:14}}>
+        <div className="card-header">
+          <div><div className="card-title">Step 3 — Forecast Growth Trajectory</div><div className="card-subtitle">WHO growth velocity × diet adequacy → predicted WAZ</div></div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:12,color:"#7A92A8",fontWeight:500}}>Horizon:</span>
+            {[3,6].map(h=>(
+              <button key={h} onClick={()=>{setHorizon(h);setComputed(false);}} style={tabStyle(horizon===h)}>{h} months</button>
+            ))}
+            <button className="btn-primary" onClick={handleCompute} disabled={intake.length===0}
+              style={{opacity:intake.length===0?0.5:1,padding:"7px 18px"}}>
+              <Brain size={13}/> Predict
+            </button>
+          </div>
+        </div>
+
+        {!computed ? (
+          <div style={{padding:"40px 0",textAlign:"center",color:"#7A92A8",fontSize:13}}>
+            <Brain size={24} color="#D0D9E4" style={{margin:"0 auto 10px",display:"block"}}/>
+            Add foods → click <strong>Predict</strong> to see {horizon}-month WAZ forecast
+          </div>
+        ) : forecast && (
+          <div className="card-body">
+            {/* Adequacy summary */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}}>
+              {[
+                {label:"Calorie Adequacy",  val:`${Math.round(forecast.calAdequacy*100)}%`, col:forecast.calAdequacy>=0.85?"#1E8449":"#B03A2E", bg:forecast.calAdequacy>=0.85?"#E9F7EF":"#FDEDEC"},
+                {label:"Growth Factor",     val:`${(forecast.velocityFactor*100).toFixed(0)}%`, col:"#00509E", bg:"#EBF3FB"},
+                {label:"Projected Grade",   val:classifyChild(forecast.points[forecast.points.length-1]["Current Diet WAZ"], lmsZScore(last.height,Math.min(last.month+horizon,60),child.gender,"height")), col:GRADE_CFG[classifyChild(forecast.points[forecast.points.length-1]["Current Diet WAZ"],lmsZScore(last.height,Math.min(last.month+horizon,60),child.gender,"height"))]?.col??"#1E8449", bg:GRADE_CFG[classifyChild(forecast.points[forecast.points.length-1]["Current Diet WAZ"],lmsZScore(last.height,Math.min(last.month+horizon,60),child.gender,"height"))]?.bg??"#E9F7EF"},
+              ].map(s=>(
+                <div key={s.label} style={{background:s.bg,borderRadius:4,padding:"12px 14px",borderLeft:`3px solid ${s.col}`,textAlign:"center"}}>
+                  <div style={{fontFamily:"IBM Plex Mono",fontSize:22,fontWeight:700,color:s.col}}>{s.val}</div>
+                  <div style={{fontSize:11,color:"#7A92A8",marginTop:3,fontWeight:500}}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Forecast chart */}
+            <ResponsiveContainer width="100%" height={220}>
+              <LineChart data={forecast.points} margin={{left:-10,right:10}}>
+                <CartesianGrid strokeDasharray="3 3" stroke={CS.grid}/>
+                <XAxis dataKey="month" tick={CS.axis}/>
+                <YAxis tick={CS.axis} domain={['auto','auto']}/>
+                <Tooltip {...CS.tooltip}/>
+                <Legend wrapperStyle={{fontSize:12,fontFamily:"IBM Plex Sans"}}/>
+                <Line type="monotone" dataKey="SAM Threshold"      stroke="#B03A2E" strokeDasharray="4 3" dot={false} strokeWidth={1.5}/>
+                <Line type="monotone" dataKey="MAM Threshold"      stroke="#CA6F1E" strokeDasharray="4 3" dot={false} strokeWidth={1.5}/>
+                <Line type="monotone" dataKey="Current Diet WAZ"   stroke="#CA6F1E" strokeWidth={2.5} dot={{r:4,fill:"#CA6F1E"}}/>
+                <Line type="monotone" dataKey="Optimal Diet WAZ"   stroke="#1E8449" strokeWidth={2.5} dot={{r:4,fill:"#1E8449"}} strokeDasharray="6 2"/>
+              </LineChart>
+            </ResponsiveContainer>
+
+            <div style={{marginTop:12,fontSize:11.5,color:"#7A92A8",fontStyle:"italic",textAlign:"center"}}>
+              🟠 Current diet trajectory &nbsp;·&nbsp; 🟢 Optimal diet trajectory &nbsp;·&nbsp; Dashed = WHO thresholds
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Nutrient gap + food recommendations */}
+      {computed && gapResult && (
+        <div className="card" style={{marginBottom:14}}>
+          <div className="card-header"><div><div className="card-title">Nutrient Gap Analysis & Food Recommendations</div><div className="card-subtitle">Based on ICMR RDA · {rda.label} age group</div></div></div>
+          <div className="card-body">
+            {gapResult.gaps.length === 0 ? (
+              <div style={{background:"#E9F7EF",border:"1px solid #82E0AA",borderLeft:"4px solid #1E8449",borderRadius:6,padding:"14px 18px",display:"flex",gap:12,alignItems:"center"}}>
+                <CheckCircle size={20} color="#1E8449"/>
+                <div>
+                  <div style={{fontWeight:700,fontSize:14,color:"#1E8449"}}>Excellent! All nutrient targets met</div>
+                  <div style={{fontSize:12.5,color:"#1D6A3A",marginTop:3}}>Current diet adequately meets ICMR RDA. Continue this diet for sustained normal growth.</div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div style={{fontSize:12.5,color:"#3D5166",marginBottom:12,fontWeight:500}}>
+                  {gapResult.gaps.length} nutrient gap{gapResult.gaps.length>1?"s":""} identified — add these foods to improve growth trajectory:
+                </div>
+                {gapResult.gaps.map(gap => (
+                  <div key={gap.nutrient} style={{background:gap.severity<0.5?"#FDEDEC":"#FEF5E7",border:`1px solid ${gap.severity<0.5?"#F1948A":"#F0B27A"}`,borderLeft:`4px solid ${gap.severity<0.5?"#B03A2E":"#CA6F1E"}`,borderRadius:6,padding:"12px 16px",marginBottom:10}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                      <span style={{fontWeight:700,fontSize:13,color:gap.severity<0.5?"#B03A2E":"#CA6F1E"}}>{gap.nutrient} Deficiency</span>
+                      <span style={{fontFamily:"IBM Plex Mono",fontSize:11.5,fontWeight:700,color:gap.severity<0.5?"#B03A2E":"#CA6F1E"}}>
+                        {gap.got}{gap.unit} / {gap.need}{gap.unit} ({Math.round(gap.severity*100)}%)
+                      </span>
+                    </div>
+                    <div style={{fontSize:12,color:"#3D5166"}}>
+                      <strong>Add to diet:</strong> {gap.foods}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // DETAIL
 function Detail({child,grades,setScreen}) {
-  const [tab,setTab]=useState("weight");
+  const [mainTab, setMainTab] = useState("growth");
+  const [chartTab, setChartTab] = useState("weight");
   if(!child)return null;
   const last=child.records[child.records.length-1];
   const waz=lmsZScore(last.weight,last.month,child.gender,"weight"),haz=lmsZScore(last.height,last.month,child.gender,"height");
   const g=grades[child.id]??"Normal",cfg=GRADE_CFG[g];
-  const data=buildChartData(child,tab),vel=getGrowthVelocity(child.records,tab);
+  const data=buildChartData(child,chartTab);
+  const vel=getGrowthVelocity(child.records,chartTab);
+
+  const MAIN_TABS=[
+    {id:"growth",  label:"📈 Growth & History"},
+    {id:"diet",    label:"🥗 Diet & Forecast"},
+  ];
+
   return (
     <>
-      <button className="btn-ghost" onClick={()=>setScreen("children")} style={{marginBottom:16}}><ArrowLeft size={13}/> Back to Registry</button>
+      {/* Top bar */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16,flexWrap:"wrap",gap:8}}>
+        <button className="btn-ghost" onClick={()=>setScreen("children")}><ArrowLeft size={13}/> Back to Registry</button>
+        <button className="btn-primary" onClick={()=>generateChildPDF(child,g,waz,haz)}>
+          <FileText size={13}/> Download Child Report
+        </button>
+      </div>
+
+      {/* Detail header */}
       <div className="detail-header">
         <div className="detail-avatar">{child.gender==="boys"?"👦":"👧"}</div>
         <div style={{flex:1}}>
           <div style={{fontWeight:700,fontSize:20,color:"#fff"}}>{child.name}</div>
-          <div style={{fontSize:12.5,color:"rgba(255,255,255,0.65)",marginTop:5,display:"flex",gap:14,flexWrap:"wrap"}}><span>{last.month} months</span><span>·</span><span>{child.gender==="boys"?"Male":"Female"}</span><span>·</span><span style={{display:"flex",alignItems:"center",gap:3}}><MapPin size={10}/>{child.village}</span></div>
+          <div style={{fontSize:12.5,color:"rgba(255,255,255,0.65)",marginTop:5,display:"flex",gap:14,flexWrap:"wrap"}}>
+            <span>{last.month} months</span><span>·</span>
+            <span>{child.gender==="boys"?"Male":"Female"}</span><span>·</span>
+            <span style={{display:"flex",alignItems:"center",gap:3}}><MapPin size={10}/>{child.village}</span>
+          </div>
         </div>
-        <div style={{textAlign:"right"}}><span className={`chip ${cfg.chip}`} style={{fontSize:12.5,padding:"5px 14px"}}>{g}</span><div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:6,fontFamily:"IBM Plex Mono"}}>{cfg.full}</div></div>
+        <div style={{textAlign:"right"}}>
+          <span className={`chip ${cfg.chip}`} style={{fontSize:12.5,padding:"5px 14px"}}>{g}</span>
+          <div style={{fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:6,fontFamily:"IBM Plex Mono"}}>{cfg.full}</div>
+        </div>
       </div>
+
+      {/* Stats strip */}
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14,marginBottom:14}}>
         <div className="clinical-card" style={{background:cfg.bg,borderColor:cfg.border,borderLeftColor:cfg.col}}>
           {g==="Normal"?<CheckCircle size={20} color={cfg.col}/>:<AlertTriangle size={20} color={cfg.col}/>}
-          <div><div style={{fontWeight:700,fontSize:14,color:cfg.col}}>{cfg.full}</div><div style={{fontSize:12,color:"#3D5166",marginTop:4,fontFamily:"IBM Plex Mono"}}>WAZ: {waz.toFixed(3)}  ·  HAZ: {haz.toFixed(3)}</div>{vel&&<div style={{fontSize:11,color:"#7A92A8",marginTop:3}}>Growth velocity: {vel} {tab==="weight"?"kg":"cm"}/month</div>}</div>
+          <div>
+            <div style={{fontWeight:700,fontSize:14,color:cfg.col}}>{cfg.full}</div>
+            <div style={{fontSize:12,color:"#3D5166",marginTop:4,fontFamily:"IBM Plex Mono"}}>WAZ: {waz.toFixed(3)}  ·  HAZ: {haz.toFixed(3)}</div>
+            {vel&&<div style={{fontSize:11,color:"#7A92A8",marginTop:3}}>Velocity: {vel} {chartTab==="weight"?"kg":"cm"}/month</div>}
+          </div>
         </div>
         <div className="metric-grid" style={{margin:0}}>
           <div className="metric-card"><Activity size={14} color="#00509E"/><div className="metric-value" style={{color:"#00509E"}}>{last.weight}<span style={{fontSize:13,fontWeight:400}}> kg</span></div><div className="metric-label">Weight</div></div>
           <div className="metric-card"><TrendingUp size={14} color="#007B83"/><div className="metric-value" style={{color:"#007B83"}}>{last.height}<span style={{fontSize:13,fontWeight:400}}> cm</span></div><div className="metric-label">Height</div></div>
         </div>
       </div>
-      <div className="card" style={{marginBottom:14}}>
-        <div className="card-header"><div className="card-title">Anthropometric History</div></div>
-        <div className="table-wrap">
-          <table>
-            <thead><tr><th>Visit</th><th>Weight</th><th>Height</th><th>WAZ</th><th>HAZ</th><th>WHO Grade</th></tr></thead>
-            <tbody>
-              {child.records.map((r,i)=>{const rW=lmsZScore(r.weight,r.month,child.gender,"weight"),rH=lmsZScore(r.height,r.month,child.gender,"height"),rG=classifyChild(rW,rH),rC=GRADE_CFG[rG];return (<tr key={i}><td style={{fontFamily:"IBM Plex Mono",fontWeight:600,color:"#0D1B2A"}}>{r.month} mo</td><td style={{fontFamily:"IBM Plex Mono"}}>{r.weight} kg</td><td style={{fontFamily:"IBM Plex Mono"}}>{r.height} cm</td><td style={{fontFamily:"IBM Plex Mono",fontWeight:700,color:rW<-2?"#B03A2E":"#1E8449"}}>{rW.toFixed(3)}</td><td style={{fontFamily:"IBM Plex Mono",fontWeight:700,color:rH<-2?"#B03A2E":"#1E8449"}}>{rH.toFixed(3)}</td><td><span className={`chip ${rC.chip}`}>{rG}</span></td></tr>);})}
-            </tbody>
-          </table>
-        </div>
+
+      {/* Main tab switcher */}
+      <div style={{display:"flex",gap:6,marginBottom:14,borderBottom:"2px solid #E8EDF3",paddingBottom:0}}>
+        {MAIN_TABS.map(t=>(
+          <button key={t.id} onClick={()=>setMainTab(t.id)}
+            style={{padding:"9px 20px",border:"none",borderBottom:mainTab===t.id?"3px solid #00509E":"3px solid transparent",cursor:"pointer",fontSize:13,fontWeight:mainTab===t.id?700:500,fontFamily:"IBM Plex Sans,sans-serif",background:"transparent",color:mainTab===t.id?"#00509E":"#7A92A8",transition:"all 0.15s",marginBottom:-2}}>
+            {t.label}
+          </button>
+        ))}
       </div>
-      <div className="card" style={{marginBottom:14}}>
-        <div className="card-header"><div><div className="card-title">Growth Chart vs WHO Reference</div><div className="card-subtitle">LMS-derived curves · Median, −2SD, −3SD</div></div><div style={{display:"flex",gap:6}}>{["weight","height"].map(t=>(<button key={t} onClick={()=>setTab(t)} style={{padding:"6px 16px",borderRadius:3,border:tab===t?"none":"1.5px solid #D0D9E4",cursor:"pointer",fontSize:12.5,fontWeight:600,fontFamily:"IBM Plex Sans,sans-serif",background:tab===t?"#00509E":"transparent",color:tab===t?"#fff":"#3D5166"}}>{t==="weight"?"WAZ":"HAZ"}</button>))}</div></div>
-        <div className="card-body">
-          <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={data} margin={{left:-10,right:10}}>
-              <CartesianGrid strokeDasharray="3 3" stroke={CS.grid}/><XAxis dataKey="age" tick={CS.axis}/><YAxis tick={CS.axis}/><Tooltip {...CS.tooltip}/><Legend wrapperStyle={{fontSize:12,fontFamily:"IBM Plex Sans"}}/>
-              <Line type="monotone" dataKey="Median" stroke="#1E8449" strokeDasharray="6 3" dot={false} strokeWidth={1.5}/>
-              <Line type="monotone" dataKey="-2SD" stroke="#CA6F1E" strokeDasharray="4 3" dot={false} strokeWidth={1.5}/>
-              <Line type="monotone" dataKey="-3SD" stroke="#B03A2E" strokeDasharray="3 3" dot={false} strokeWidth={1.5}/>
-              <Line type="monotone" dataKey="Child" stroke="#00509E" strokeWidth={2.5} dot={{fill:"#00509E",r:4,strokeWidth:0}} connectNulls={false}/>
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-      <div className="ai-box">
-        <div className="ai-box-title"><ClipboardList size={12}/> Clinical Protocol — {g} ({cfg.full})</div>
-        <ul>{CLINICAL_RECS[g]?.map((r,i)=><li key={i}>{r}</li>)}</ul>
-        <div style={{marginTop:12,fontSize:11,color:"#7A92A8",borderTop:"1px solid #C2DCF5",paddingTop:10,fontFamily:"IBM Plex Mono"}}>WHO LMS Box-Cox · WAZ:{waz.toFixed(3)} HAZ:{haz.toFixed(3)} · {cfg.full} · WHO Child Growth Standards 2006</div>
-      </div>
+
+      {/* GROWTH TAB */}
+      {mainTab==="growth" && (
+        <>
+          <div className="card" style={{marginBottom:14}}>
+            <div className="card-header"><div className="card-title">Anthropometric History</div></div>
+            <div className="table-wrap">
+              <table>
+                <thead><tr><th>Visit</th><th>Weight</th><th>Height</th><th>WAZ</th><th>HAZ</th><th>WHO Grade</th></tr></thead>
+                <tbody>
+                  {child.records.map((r,i)=>{
+                    const rW=lmsZScore(r.weight,r.month,child.gender,"weight");
+                    const rH=lmsZScore(r.height,r.month,child.gender,"height");
+                    const rG=classifyChild(rW,rH),rC=GRADE_CFG[rG];
+                    return (
+                      <tr key={i}>
+                        <td style={{fontFamily:"IBM Plex Mono",fontWeight:600,color:"#0D1B2A"}}>{r.month} mo</td>
+                        <td style={{fontFamily:"IBM Plex Mono"}}>{r.weight} kg</td>
+                        <td style={{fontFamily:"IBM Plex Mono"}}>{r.height} cm</td>
+                        <td style={{fontFamily:"IBM Plex Mono",fontWeight:700,color:rW<-2?"#B03A2E":"#1E8449"}}>{rW.toFixed(3)}</td>
+                        <td style={{fontFamily:"IBM Plex Mono",fontWeight:700,color:rH<-2?"#B03A2E":"#1E8449"}}>{rH.toFixed(3)}</td>
+                        <td><span className={`chip ${rC.chip}`}>{rG}</span></td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="card" style={{marginBottom:14}}>
+            <div className="card-header">
+              <div><div className="card-title">Growth Chart vs WHO Reference</div><div className="card-subtitle">LMS-derived curves · Median, −2SD, −3SD</div></div>
+              <div style={{display:"flex",gap:6}}>
+                {["weight","height"].map(t=>(
+                  <button key={t} onClick={()=>setChartTab(t)}
+                    style={{padding:"6px 16px",borderRadius:3,border:chartTab===t?"none":"1.5px solid #D0D9E4",cursor:"pointer",fontSize:12.5,fontWeight:600,fontFamily:"IBM Plex Sans,sans-serif",background:chartTab===t?"#00509E":"transparent",color:chartTab===t?"#fff":"#3D5166"}}>
+                    {t==="weight"?"WAZ":"HAZ"}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="card-body">
+              <ResponsiveContainer width="100%" height={240}>
+                <LineChart data={data} margin={{left:-10,right:10}}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={CS.grid}/>
+                  <XAxis dataKey="age" tick={CS.axis}/><YAxis tick={CS.axis}/>
+                  <Tooltip {...CS.tooltip}/><Legend wrapperStyle={{fontSize:12,fontFamily:"IBM Plex Sans"}}/>
+                  <Line type="monotone" dataKey="Median" stroke="#1E8449" strokeDasharray="6 3" dot={false} strokeWidth={1.5}/>
+                  <Line type="monotone" dataKey="-2SD"   stroke="#CA6F1E" strokeDasharray="4 3" dot={false} strokeWidth={1.5}/>
+                  <Line type="monotone" dataKey="-3SD"   stroke="#B03A2E" strokeDasharray="3 3" dot={false} strokeWidth={1.5}/>
+                  <Line type="monotone" dataKey="Child"  stroke="#00509E" strokeWidth={2.5} dot={{fill:"#00509E",r:4,strokeWidth:0}} connectNulls={false}/>
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="ai-box">
+            <div className="ai-box-title"><ClipboardList size={12}/> Clinical Protocol — {g} ({cfg.full})</div>
+            <ul>{CLINICAL_RECS[g]?.map((r,i)=><li key={i}>{r}</li>)}</ul>
+            <div style={{marginTop:12,fontSize:11,color:"#7A92A8",borderTop:"1px solid #C2DCF5",paddingTop:10,fontFamily:"IBM Plex Mono"}}>
+              WHO LMS Box-Cox · WAZ:{waz.toFixed(3)} HAZ:{haz.toFixed(3)} · {cfg.full} · WHO Child Growth Standards 2006
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* DIET & FORECAST TAB */}
+      {mainTab==="diet" && <DietForecast child={child} grade={g}/>}
     </>
   );
 }
@@ -576,4 +1093,3 @@ export default function App() {
     </div>
   );
 }
-
