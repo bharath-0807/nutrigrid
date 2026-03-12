@@ -6,7 +6,8 @@ import {
   ArrowLeft, FileText, ArrowRight,
   Shield, Wifi, Bell, HeartPulse,
   ClipboardList, Zap, ChevronRight,
-  Download, LogOut, LogIn
+  Download, LogOut, LogIn,
+  Eye, EyeOff, Lock, User
 } from "lucide-react";
 import {
   LineChart, Line, BarChart, Bar,
@@ -290,7 +291,7 @@ function generateChildPDF(child, grade, waz, haz, dietData) {
   doc.text("NutriGrid - Child Nutritional Assessment Report",14,13);
   doc.setFontSize(8.5); doc.setFont("helvetica","normal");
   doc.text("Coimbatore District ICDS  |  March 2026  |  WHO LMS Box-Cox Algorithm (2006)",14,22);
-  doc.text("Jansons Institute of Technology  |  Niral Thiruvizha 3.0",14,30);
+  doc.text("Jansons Institute of Technology, Coimbatore",14,30);
 
   // ── GRADE BADGE (coloured box top-right) ──
   const gc = grade==="SAM"?[176,58,46]:grade==="MAM"?[202,111,30]:[30,132,73];
@@ -513,7 +514,7 @@ function generateChildPDF(child, grade, waz, haz, dietData) {
     doc.setPage(i);
     doc.setFillColor(0,59,115); doc.rect(0,287,210,10,"F");
     doc.setFontSize(6.5); doc.setTextColor(255,255,255); doc.setFont("helvetica","normal");
-    doc.text(`NutriGrid  |  WHO Child Growth Standards (2006)  |  ICMR-NIN Food Composition (2017)  |  Niral Thiruvizha 3.0  |  Page ${i}/${pageCount}`,14,293);
+    doc.text(`NutriGrid  |  WHO Child Growth Standards (2006)  |  ICMR-NIN Food Composition (2017)  |  Page ${i}/${pageCount}`,14,293);
   }
 
   doc.save(`NutriGrid_${child.name.replace(/ /g,"_")}_Report.pdf`);
@@ -526,9 +527,13 @@ const INIT_CHILDREN = [
   {id:4,name:"Meena Devi",   age:48,gender:"girls",village:"Block C",records:[{month:0,weight:3.1,height:49.0},{month:12,weight:9.2,height:73.5},{month:24,weight:11.8,height:85.0},{month:36,weight:13.9,height:94.0},{month:48,weight:16.1,height:102.5}]},
 ];
 
-const DEMO_USERS = [
-  {id:"aw1",name:"Kavitha S.",  role:"Anganwadi Worker",block:"Block A, Coimbatore",emoji:"👩‍⚕️"},
-  {id:"co1",name:"Dr. Meenakshi",role:"CDPO Officer",  block:"District HQ",       emoji:"👩‍💼"},
+// Proper credential-based auth
+const AUTH_USERS = [
+  {id:"aw1", username:"worker1",  password:"icds123",  name:"Anganwadi Worker", role:"Anganwadi Worker", block:"Block A, Coimbatore"},
+  {id:"aw2", username:"worker2",  password:"icds123",  name:"Anganwadi Worker", role:"Anganwadi Worker", block:"Block B, Coimbatore"},
+  {id:"co1", username:"cdpo",     password:"cdpo2026", name:"CDPO Officer",     role:"CDPO Officer",     block:"District HQ"},
+  {id:"dho", username:"dho",      password:"dho2026",  name:"DHO Officer",      role:"District Health Officer", block:"Coimbatore District"},
+  {id:"sup", username:"admin",    password:"admin123", name:"Supervisor",       role:"Supervisor",       block:"State ICDS, Tamil Nadu"},
 ];
 
 const NAV=[
@@ -556,42 +561,107 @@ function generatePDF(children, grades) {
   doc.text("Individual Records",14,doc.lastAutoTable.finalY+12);
   autoTable(doc,{startY:doc.lastAutoTable.finalY+16,head:[["Name","Age","Sex","Block","Wt(kg)","Ht(cm)","WAZ","HAZ","WHO Grade"]],body:children.map(c=>{const last=c.records[c.records.length-1];return [c.name,last.month,c.gender==="boys"?"M":"F",c.village,`${last.weight}`,`${last.height}`,lmsZScore(last.weight,last.month,c.gender,"weight").toFixed(2),lmsZScore(last.height,last.month,c.gender,"height").toFixed(2),grades[c.id]??"—"];}),headStyles:{fillColor:[0,59,115],fontSize:8},bodyStyles:{fontSize:8},alternateRowStyles:{fillColor:[240,244,248]}});
   doc.setFontSize(7.5);doc.setTextColor(120,140,160);
-  doc.text("WHO LMS Box-Cox z-score  |  SAM: WAZ/HAZ<-3  |  MAM: -3 to -2  |  NutriGrid ICDS System  |  Niral Thiruvizha 3.0",14,284);
+  doc.text("WHO LMS Box-Cox z-score  |  SAM: WAZ/HAZ<-3  |  MAM: -3 to -2  |  NutriGrid ICDS System",14,284);
   doc.save("NutriGrid_ICDS_Report.pdf");
 }
 
 // LOGIN
 function LoginPage({onLogin}) {
-  const [sel,setSel]=useState("aw1");
-  const handleLogin=()=>{const u=DEMO_USERS.find(u=>u.id===sel);if(u)onLogin(u);};
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPw,   setShowPw]   = useState(false);
+  const [error,    setError]    = useState("");
+  const [loading,  setLoading]  = useState(false);
+
+  const handleLogin = () => {
+    setError("");
+    if (!username.trim() || !password.trim()) { setError("Please enter username and password."); return; }
+    setLoading(true);
+    setTimeout(() => {
+      const user = AUTH_USERS.find(u => u.username === username.trim() && u.password === password);
+      setLoading(false);
+      if (user) { onLogin(user); }
+      else { setError("Invalid username or password. Please try again."); }
+    }, 600);
+  };
+
+  const handleKey = (e) => { if (e.key === "Enter") handleLogin(); };
+
   return (
     <div className="login-page">
       <div className="login-grid"/>
       <div className="login-card">
+        {/* Header */}
         <div className="login-header">
           <div className="login-logo">
             <div className="login-logo-icon">🌱</div>
-            <div><div className="login-logo-text">NutriGrid</div><div className="login-logo-sub">ICDS Monitoring System</div></div>
+            <div>
+              <div className="login-logo-text">NutriGrid</div>
+              <div className="login-logo-sub">ICDS Monitoring System</div>
+            </div>
           </div>
-          <div className="login-header-tag"><strong>Coimbatore District · ICDS Programme</strong><br/>WHO LMS Algorithm · v2.0</div>
+          <div className="login-header-tag">
+            <strong>Coimbatore District · ICDS Programme</strong><br/>
+            WHO LMS Algorithm · v2.0
+          </div>
         </div>
+
+        {/* Body */}
         <div className="login-body">
           <div className="login-title">Sign in to NutriGrid</div>
-          <div className="login-sub">Select your role to access the ICDS dashboard</div>
-          <div className="demo-users">
-            <div className="demo-label">Demo Accounts — Click to Select</div>
-            {DEMO_USERS.map(u=>(
-              <div key={u.id} className="demo-user-row" onClick={()=>setSel(u.id)} style={sel===u.id?{borderColor:"#00509E",background:"#EBF3FB"}:{}}>
-                <div style={{display:"flex",alignItems:"center",gap:10}}>
-                  <span style={{fontSize:22}}>{u.emoji}</span>
-                  <div className="demo-user-info"><strong>{u.name}</strong><span>{u.role} · {u.block}</span></div>
-                </div>
-                <span className="demo-user-badge">{sel===u.id?"✓ SELECTED":"SELECT"}</span>
-              </div>
-            ))}
+          <div className="login-sub">Enter your ICDS credentials to access the dashboard</div>
+
+          {/* Username */}
+          <div className="login-field">
+            <label className="login-label">Username</label>
+            <div className="login-input-wrap">
+              <User size={15} color="#7A92A8" style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)"}}/>
+              <input
+                className="login-input"
+                type="text"
+                placeholder="Enter your username"
+                value={username}
+                onChange={e=>{setUsername(e.target.value);setError("");}}
+                onKeyDown={handleKey}
+                autoComplete="username"
+              />
+            </div>
           </div>
-          <button className="login-btn" onClick={handleLogin}><LogIn size={15}/> Access Dashboard</button>
-          <div className="login-footer-note">🔒 Demo system · Niral Thiruvizha 3.0 · Jansons Institute of Technology</div>
+
+          {/* Password */}
+          <div className="login-field">
+            <label className="login-label">Password</label>
+            <div className="login-input-wrap">
+              <Lock size={15} color="#7A92A8" style={{position:"absolute",left:12,top:"50%",transform:"translateY(-50%)"}}/>
+              <input
+                className="login-input"
+                type={showPw?"text":"password"}
+                placeholder="Enter your password"
+                value={password}
+                onChange={e=>{setPassword(e.target.value);setError("");}}
+                onKeyDown={handleKey}
+                autoComplete="current-password"
+                style={{paddingRight:40}}
+              />
+              <button onClick={()=>setShowPw(p=>!p)} style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",color:"#7A92A8",padding:0}}>
+                {showPw ? <EyeOff size={15}/> : <Eye size={15}/>}
+              </button>
+            </div>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div style={{background:"#FDEDEC",border:"1px solid #F1948A",borderRadius:4,padding:"9px 12px",fontSize:12.5,color:"#B03A2E",display:"flex",alignItems:"center",gap:8}}>
+              <AlertTriangle size={13}/> {error}
+            </div>
+          )}
+
+          {/* Login Button */}
+          <button className="login-btn" onClick={handleLogin} disabled={loading}>
+            {loading ? <span style={{opacity:0.7}}>Verifying...</span> : <><LogIn size={15}/> Sign In</>}
+          </button>
+
+          <div className="login-footer-note">🔒 Secure ICDS System · Jansons Institute of Technology</div>
         </div>
       </div>
     </div>
@@ -634,7 +704,7 @@ function LandingPage({onLogin}) {
         <div className="hero-grid-overlay"/>
         <div className="hero-inner">
           <div>
-            <div className="hero-flag"><span style={{width:8,height:8,borderRadius:"50%",background:"#4ADE80",display:"inline-block"}}/>Niral Thiruvizha 3.0 · Jansons Institute of Technology</div>
+            <div className="hero-flag"><span style={{width:8,height:8,borderRadius:"50%",background:"#4ADE80",display:"inline-block"}}/>WHO LMS · Jansons Institute of Technology</div>
             <h1 className="hero-title">WHO-Standard SAM/MAM<br/>Detection for<br/><span className="accent">Anganwadi Centres</span></h1>
             <p className="hero-sub">NutriGrid implements the WHO official LMS Box-Cox z-score algorithm — the same method used by UNICEF, India NHM, and NRC centres — to classify SAM, MAM, and GAM with clinical precision.</p>
             <div className="hero-cta">
@@ -700,7 +770,7 @@ function LandingPage({onLogin}) {
         </div>
       </section>
       <footer className="land-footer">
-        <div className="land-footer-left">🌱 NutriGrid v2.0 · WHO LMS Algorithm · Niral Thiruvizha 3.0 · Jansons Institute of Technology, Coimbatore</div>
+        <div className="land-footer-left">🌱 NutriGrid v2.0 · WHO LMS Algorithm · Jansons Institute of Technology, Coimbatore</div>
         <div className="land-footer-right">Mohanapriya S · Gayathri M · Lavanya B · Bharath M · Guide: Mrs. Vidhya Gowri V</div>
       </footer>
     </div>
@@ -832,15 +902,17 @@ function Analytics({children,grades,stats}) {
   const vData=["Block A","Block B","Block C"].map(v=>{const vc=children.filter(c=>c.village===v);return {name:v,Normal:vc.filter(c=>grades[c.id]==="Normal").length,MAM:vc.filter(c=>grades[c.id]==="MAM").length,SAM:vc.filter(c=>grades[c.id]==="SAM").length};});
   const gam=stats.sam+stats.mam,gamRate=stats.total>0?Math.round(gam/stats.total*100):0;
   return (
-    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+    <div className="analytics-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
       <div className="card" style={{gridColumn:"1 / -1"}}>
         <div className="card-header"><div><div className="card-title">WHO Programme Indicators — March 2026</div><div className="card-subtitle">Coimbatore District ICDS · SAM/MAM/GAM vs WHO thresholds</div></div></div>
-        <div className="card-body" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
-          {[{label:"GAM Rate",value:`${gamRate}%`,sub:"SAM+MAM/Total",col:"#B03A2E",bg:"#FDEDEC",note:gamRate>15?"⚠ WHO Emergency":"Threshold: 15%"},
+        <div className="card-body">
+          <div className="who-indicators-grid" style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:12}}>
+          {[{label:"GAM Rate",value:`${gamRate}%`,sub:"SAM+MAM/Total",col:"#B03A2E",bg:"#FDEDEC",note:gamRate>15?"WHO Emergency":"Threshold: 15%"},
             {label:"SAM Rate",value:`${stats.total>0?Math.round(stats.sam/stats.total*100):0}%`,sub:"Severe cases",col:"#B03A2E",bg:"#FDEDEC",note:"Emergency: >2%"},
             {label:"MAM Rate",value:`${stats.total>0?Math.round(stats.mam/stats.total*100):0}%`,sub:"Moderate cases",col:"#CA6F1E",bg:"#FEF5E7",note:"Alert: >10%"},
             {label:"Coverage",value:`${stats.total}`,sub:"Assessed",col:"#00509E",bg:"#EBF3FB",note:"Target: 100%"},
           ].map(d=>(<div key={d.label} style={{background:d.bg,borderRadius:4,padding:"14px 16px",borderLeft:`3px solid ${d.col}`}}><div style={{fontFamily:"IBM Plex Mono",fontSize:24,fontWeight:700,color:d.col}}>{d.value}</div><div style={{fontSize:12,fontWeight:700,color:d.col,margin:"3px 0"}}>{d.label}</div><div style={{fontSize:10.5,color:"#7A92A8"}}>{d.sub}</div><div style={{fontSize:10,color:d.col,marginTop:4,fontFamily:"IBM Plex Mono",background:"rgba(0,0,0,0.05)",padding:"2px 6px",borderRadius:2,display:"inline-block"}}>{d.note}</div></div>))}
+          </div>
         </div>
       </div>
       <div className="card">
@@ -1266,6 +1338,9 @@ export default function App() {
   const [selected,setSelected]=useState(null);
   const [pwaEvt,setPwaEvt]=useState(null);
 
+  // Set browser tab title
+  useEffect(()=>{ document.title = "NutriGrid | WHO LMS"; },[]);
+
   useEffect(()=>{
     const handler=e=>{e.preventDefault();setPwaEvt(e);};
     window.addEventListener("beforeinstallprompt",handler);
@@ -1290,6 +1365,9 @@ export default function App() {
   const meta={dashboard:{title:"Dashboard",sub:"Coimbatore District · March 2026"},children:{title:"Child Registry",sub:`${children.length} children · WHO LMS graded`},add:{title:"Register Child",sub:"New anthropometric measurement"},analytics:{title:"Analytics & Reports",sub:"SAM/MAM/GAM indicators"},detail:{title:selected?.name??"",sub:`${selected?.records?.[selected.records.length-1]?.month??""} months · ${selected?.village??""}`}};
   const pt=meta[screen]??meta.dashboard;
 
+  // Role icon
+  const roleIcon = user?.role==="Anganwadi Worker"?"👩‍⚕️":user?.role==="CDPO Officer"?"👩‍💼":user?.role==="District Health Officer"?"🏥":"👤";
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -1299,7 +1377,7 @@ export default function App() {
           {NAV.map(({id,label,Icon})=>(<button key={id} className={`nav-item ${screen===id?"active":""}`} onClick={()=>setScreen(id)}><Icon size={15}/> {label}</button>))}
         </nav>
         <div className="sidebar-footer">
-          <div className="user-card"><div className="user-avatar">{user?.emoji??"👩‍⚕️"}</div><div><strong>{user?.name??"Worker"}</strong><span>{user?.block??"Coimbatore"}</span></div></div>
+          <div className="user-card"><div className="user-avatar">{roleIcon}</div><div><strong>{user?.role??"Worker"}</strong><span>{user?.block??"Coimbatore"}</span></div></div>
           <button onClick={handleLogout} style={{marginTop:8,width:"100%",padding:"7px",background:"rgba(255,255,255,0.06)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:4,color:"rgba(255,255,255,0.5)",fontSize:11.5,cursor:"pointer",fontFamily:"IBM Plex Sans",display:"flex",alignItems:"center",justifyContent:"center",gap:6,transition:"all 0.15s"}} onMouseOver={e=>{e.currentTarget.style.color="#fff";e.currentTarget.style.background="rgba(255,255,255,0.12)"}} onMouseOut={e=>{e.currentTarget.style.color="rgba(255,255,255,0.5)";e.currentTarget.style.background="rgba(255,255,255,0.06)"}}><LogOut size={13}/> Sign Out</button>
         </div>
       </aside>
@@ -1313,7 +1391,7 @@ export default function App() {
           </div>
         </div>
         <div className="page-body">
-          <div className="page-title-bar"><div><h2>{pt.title}</h2><p>{pt.sub}</p></div>{user&&<div style={{fontSize:11.5,color:"#7A92A8",textAlign:"right",fontFamily:"IBM Plex Mono"}}>{user.emoji} {user.name}<br/><span style={{fontSize:10}}>{user.role}</span></div>}</div>
+          <div className="page-title-bar"><div><h2>{pt.title}</h2><p>{pt.sub}</p></div>{user&&<div style={{fontSize:11.5,color:"#7A92A8",textAlign:"right",fontFamily:"IBM Plex Mono"}}>{roleIcon} {user.role}<br/><span style={{fontSize:10}}>{user.block}</span></div>}</div>
           {screen==="dashboard"&&<Dashboard children={children} grades={grades} stats={stats} goDetail={goDetail}/>}
           {screen==="children" &&<ChildrenList children={children} grades={grades} goDetail={goDetail} setScreen={setScreen}/>}
           {screen==="add"      &&<AddRecord onAdd={handleAdd}/>}
