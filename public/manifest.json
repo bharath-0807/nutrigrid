@@ -1,6 +1,7 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "NutriGrid",
+  "name": "NutriGrid — ICDS Child Growth Monitoring",
+  "description": "WHO LMS-powered child malnutrition detection for Anganwadi centres",
   "icons": [
     {
       "src": "favicon.ico",
@@ -10,16 +11,21 @@
     {
       "src": "logo192.png",
       "type": "image/png",
-      "sizes": "192x192"
+      "sizes": "192x192",
+      "purpose": "any maskable"
     },
     {
       "src": "logo512.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#003B73",
+  "background_color": "#003B73",
+  "orientation": "portrait-primary",
+  "categories": ["health", "medical", "government"],
+  "lang": "en-IN"
 }

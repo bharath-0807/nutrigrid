@@ -488,71 +488,20 @@ tbody tr:hover td { background:#F4F8FC; color:var(--text); }
 .mobile-nav-item { flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 4px; border:none; background:transparent; cursor:pointer; color:rgba(255,255,255,0.45); font-size:9.5px; font-weight:600; font-family:'IBM Plex Sans',sans-serif; transition:color 0.15s; text-transform:uppercase; }
 .mobile-nav-item.active { color:#5BB8F5; }
 
-/* ── RESPONSIVE ── */
-@media (max-width:1100px) {
-  .stat-grid{grid-template-columns:repeat(2,1fr);}
-  .feature-grid{grid-template-columns:repeat(2,1fr);}
-  .grade-legend{grid-template-columns:repeat(2,1fr);}
-  .steps-row{grid-template-columns:repeat(2,1fr);gap:28px;}
-  .step-card::after{display:none;}
-  .hero-inner{grid-template-columns:1fr;}
-  .hero-mockup{display:none;}
+/* ── SIDEBAR LOGOUT BUTTON ── */
+.sidebar-logout-btn {
+  margin-top:8px; width:100%; padding:7px;
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:4px; color:rgba(255,255,255,0.5);
+  font-size:11.5px; cursor:pointer;
+  font-family:'IBM Plex Sans',sans-serif;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  transition:all 0.15s;
 }
-@media (max-width:768px) {
-  .sidebar{display:none;}
-  .main-content{margin-left:0;padding-bottom:72px;}
-  .mobile-nav{display:block;}
-  .top-bar{padding:0 16px;}
-  .page-body{padding:14px 16px;}
-  .stat-grid{grid-template-columns:repeat(2,1fr);gap:10px;}
-  .form-grid{grid-template-columns:1fr;}
-  .metric-grid{grid-template-columns:1fr 1fr;}
-  .grade-legend{grid-template-columns:1fr 1fr;}
-  .feature-grid{grid-template-columns:1fr;}
-  .steps-row{grid-template-columns:1fr 1fr;gap:24px;}
-  .land-footer{flex-direction:column;}
-}
-@media (max-width:480px) {
-  .steps-row{grid-template-columns:1fr;}
-  .grade-legend{grid-template-columns:1fr;}
-  .login-roles{grid-template-columns:1fr;}
-}
+.sidebar-logout-btn:hover { color:#fff; background:rgba(255,255,255,0.12); }
 
-/* ── MOBILE IMPROVEMENTS ── */
-@media (max-width:768px) {
-  .top-bar { padding:0 14px; height:52px; }
-  .page-body { padding:12px 14px; }
-  .page-title-bar { padding:11px 14px; margin-bottom:14px; }
-  .page-title-bar h2 { font-size:15px; }
-  .card-body { padding:14px; }
-  .card-header { padding:11px 14px; }
-  .detail-header { padding:16px; gap:12px; }
-  .table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
-  table { min-width:500px; }
-  .top-bar-right { gap:6px; }
-  .ai-status { font-size:10px; padding:4px 8px; }
-  .land-nav { padding:0 4%; }
-  .land-hero { padding:80px 4% 48px; }
-  .land-section { padding:48px 4%; }
-  .land-cta { padding:48px 4%; }
-  .login-card-body { padding:20px; }
-  .login-card-header { padding:20px; }
-  .stat-value { font-size:26px; }
-  .hero-title { font-size:clamp(24px,6vw,36px); }
-  .hero-sub { font-size:14px; }
-  .benefit-grid { grid-template-columns:1fr; }
-}
-@media (max-width:480px) {
-  .hero-stats-strip { grid-template-columns:1fr; }
-  .hero-cta { flex-direction:column; }
-  .hero-btn-primary, .hero-btn-outline { width:100%; justify-content:center; }
-  .page-title-bar p { display:none; }
-  .stat-card { padding:12px 14px; }
-  .stat-value { font-size:22px; }
-  .login-roles { grid-template-columns:1fr 1fr; }
-}
-
-/* ── PROPER LOGIN FORM ── */
+/* ── LOGIN FORM FIELDS ── */
 .login-field { display:flex; flex-direction:column; gap:6px; }
 .login-label { font-size:12px; font-weight:700; color:#3D5166; text-transform:uppercase; letter-spacing:0.04em; }
 .login-input-wrap { position:relative; }
@@ -568,119 +517,122 @@ tbody tr:hover td { background:#F4F8FC; color:var(--text); }
 .login-input::placeholder { color:#B0BDD0; }
 .login-body { display:flex; flex-direction:column; gap:14px; padding:24px; }
 
-/* ══════════════════════════════════════════
-   MOBILE FIXES — ALL 4 ISSUES
-   ══════════════════════════════════════════ */
+/* ── ANALYTICS GRID BASE ── */
+.analytics-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.who-indicators-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
 
-/* 1. TOP BAR — compact, no overflow */
+/* ══════════════════════════════════════════════════════════
+   RESPONSIVE — Consolidated (single block per breakpoint)
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Tablet (≤1100px) ── */
+@media (max-width:1100px) {
+  .stat-grid { grid-template-columns:repeat(2,1fr); }
+  .feature-grid { grid-template-columns:repeat(2,1fr); }
+  .grade-legend { grid-template-columns:repeat(2,1fr); }
+  .steps-row { grid-template-columns:repeat(2,1fr); gap:28px; }
+  .step-card::after { display:none; }
+  .hero-inner { grid-template-columns:1fr; }
+  .hero-mockup { display:none; }
+}
+
+/* ── Mobile (≤768px) ── */
 @media (max-width:768px) {
-  .top-bar {
-    height:auto; min-height:48px;
-    padding:8px 12px;
-    flex-wrap:nowrap;
-    gap:6px;
-    overflow:hidden;
-  }
-  .top-bar-breadcrumb {
-    font-size:11px;
-    overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
-    flex:1; min-width:0;
-  }
-  .top-bar-right {
-    flex-shrink:0; gap:4px;
-    align-items:center;
-  }
+  /* Layout */
+  .sidebar { display:none; }
+  .main-content { margin-left:0; padding-bottom:72px; }
+  .mobile-nav { display:block; }
+
+  /* Top bar */
+  .top-bar { height:auto; min-height:48px; padding:8px 12px; flex-wrap:nowrap; gap:6px; overflow:hidden; }
+  .top-bar-breadcrumb { font-size:11px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; flex:1; min-width:0; }
+  .top-bar-right { flex-shrink:0; gap:4px; align-items:center; }
   .top-bar-right .btn-ghost { font-size:11px; padding:4px 8px; }
   .ai-status { font-size:9.5px; padding:3px 7px; white-space:nowrap; }
   .pwa-install-btn { font-size:10px; padding:4px 8px; }
 
-  /* 2. DASHBOARD STAT CARDS — bigger on mobile */
-  .stat-grid { grid-template-columns:1fr 1fr !important; gap:10px; }
-  .stat-card { padding:14px; }
-  .stat-value { font-size:28px !important; }
-  .stat-label { font-size:10.5px; }
-
-  /* 3. ANALYTICS — single column, charts full width */
-  .analytics-grid,
-  div[style*="grid-template-columns:\"1fr 1fr\""],
-  div[style*='grid-template-columns:"1fr 1fr"'] { grid-template-columns:1fr !important; }
-
-  /* Page body padding reduce */
+  /* Page body */
   .page-body { padding:10px 12px; }
+  .page-title-bar { padding:11px 14px; margin-bottom:14px; }
+  .page-title-bar h2 { font-size:15px; }
 
-  /* Card body padding */
+  /* Cards */
   .card-body { padding:12px; }
   .card-header { padding:10px 12px; flex-wrap:wrap; gap:8px; }
   .card-title { font-size:13px; }
+
+  /* Stats */
+  .stat-grid { grid-template-columns:1fr 1fr; gap:10px; }
+  .stat-card { padding:14px; }
+  .stat-value { font-size:28px; }
+  .stat-label { font-size:10.5px; }
+
+  /* Detail */
+  .detail-header { padding:16px; gap:12px; }
+  .table-wrap { overflow-x:auto; -webkit-overflow-scrolling:touch; }
+  table { min-width:500px; }
+
+  /* Grids */
+  .form-grid { grid-template-columns:1fr; }
+  .metric-grid { grid-template-columns:1fr 1fr; }
+  .grade-legend { grid-template-columns:1fr 1fr; }
+  .feature-grid { grid-template-columns:1fr; }
+  .steps-row { grid-template-columns:1fr 1fr; gap:24px; }
+
+  /* Analytics */
+  .analytics-grid { grid-template-columns:1fr; }
+  .analytics-grid .card[style*="gridColumn"] { grid-column:1; }
+  .who-indicators-grid { grid-template-columns:1fr 1fr; }
+  .recharts-legend-wrapper { font-size:10px; }
+
+  /* Landing */
+  .land-nav { padding:0 4%; }
+  .land-hero { padding:80px 4% 48px; }
+  .land-section { padding:48px 4%; }
+  .land-cta { padding:48px 4%; }
+  .land-footer { flex-direction:column; }
+  .hero-title { font-size:clamp(24px,6vw,36px); }
+  .hero-sub { font-size:14px; }
 }
 
-/* 2. CHILD REGISTRY TABLE — mobile card view instead of table */
+/* ── Mobile card table (≤640px) ── */
 @media (max-width:640px) {
-  /* Hide table, show cards */
   .table-wrap table thead { display:none; }
-  .table-wrap table { min-width:unset !important; border:none; }
+  .table-wrap table { min-width:unset; border:none; }
   .table-wrap table tbody { display:flex; flex-direction:column; gap:8px; padding:8px; }
   .table-wrap table tbody tr {
-    display:grid;
-    grid-template-columns:auto 1fr auto;
-    align-items:center;
-    gap:8px 12px;
-    background:#fff;
-    border:1px solid #D0D9E4;
-    border-radius:6px;
-    padding:10px 12px;
-    cursor:pointer;
+    display:grid; grid-template-columns:auto 1fr auto;
+    align-items:center; gap:8px 12px;
+    background:#fff; border:1px solid #D0D9E4;
+    border-radius:6px; padding:10px 12px; cursor:pointer;
   }
   .table-wrap table tbody tr:hover { border-color:#00509E; background:#EBF3FB; }
-  /* Show Name col as full row top */
   .table-wrap table tbody tr td:nth-child(1) { grid-column:1/3; }
-  /* Age */
   .table-wrap table tbody tr td:nth-child(2)::before { content:"Age: "; color:#7A92A8; font-size:10.5px; }
   .table-wrap table tbody tr td:nth-child(2) { font-size:11.5px; }
-  /* Hide Sex col */
   .table-wrap table tbody tr td:nth-child(3) { display:none; }
-  /* Block */
   .table-wrap table tbody tr td:nth-child(4)::before { content:"Block: "; color:#7A92A8; font-size:10.5px; }
   .table-wrap table tbody tr td:nth-child(4) { font-size:11.5px; }
-  /* Weight */
   .table-wrap table tbody tr td:nth-child(5)::before { content:"Wt: "; color:#7A92A8; font-size:10.5px; }
   .table-wrap table tbody tr td:nth-child(5) { font-size:11.5px; }
-  /* Height */
   .table-wrap table tbody tr td:nth-child(6)::before { content:"Ht: "; color:#7A92A8; font-size:10.5px; }
   .table-wrap table tbody tr td:nth-child(6) { font-size:11.5px; }
-  /* WAZ */
   .table-wrap table tbody tr td:nth-child(7)::before { content:"WAZ: "; color:#7A92A8; font-size:10.5px; }
   .table-wrap table tbody tr td:nth-child(7) { font-size:11.5px; }
-  /* HAZ — hide to save space */
   .table-wrap table tbody tr td:nth-child(8) { display:none; }
-  /* Grade chip — last col, align right */
   .table-wrap table tbody tr td:last-child { grid-column:3; grid-row:1; }
-
-  /* 3. ANALYTICS — WHO indicators 2x2 on mobile */
-  div[style*="repeat(4,1fr)"] { grid-template-columns:1fr 1fr !important; }
-
-  /* 4. ANALYTICS CHARTS — full width */
-  .recharts-wrapper { font-size:10px !important; }
+  .recharts-wrapper { font-size:10px; }
 }
 
-/* Analytics outer grid — always 1 col on mobile */
-@media (max-width:768px) {
-  /* Target analytics 2-col grid */
-  div.card[style*="gridColumn:\"1 / -1\""],
-  div.card[style*='gridColumn:"1 / -1"'] { grid-column:1 !important; }
-}
-
-/* Analytics grid responsive */
-.analytics-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-.who-indicators-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; }
-
-@media (max-width:768px) {
-  .analytics-grid { grid-template-columns:1fr !important; }
-  .analytics-grid .card[style*="gridColumn"] { grid-column:1 !important; }
-  .who-indicators-grid { grid-template-columns:1fr 1fr !important; }
-  .recharts-legend-wrapper { font-size:10px !important; }
-}
+/* ── Small phone (≤480px) ── */
 @media (max-width:480px) {
-  .who-indicators-grid { grid-template-columns:1fr 1fr !important; }
-  .stat-value { font-size:24px !important; }
+  .steps-row { grid-template-columns:1fr; }
+  .grade-legend { grid-template-columns:1fr; }
+  .hero-stats-strip { grid-template-columns:1fr; }
+  .hero-cta { flex-direction:column; }
+  .hero-btn-primary, .hero-btn-outline { width:100%; justify-content:center; }
+  .page-title-bar p { display:none; }
+  .stat-card { padding:12px 14px; }
+  .stat-value { font-size:24px; }
+  .who-indicators-grid { grid-template-columns:1fr 1fr; }
 }
