@@ -2,17 +2,19 @@ import { useState, useCallback } from "react";
 import { CheckCircle, Brain } from "lucide-react";
 import { lmsZScore, classifyChild } from "../utils/lmsCalc";
 import { GRADE_CFG } from "../data/clinicalConfig";
+import { saveChildToFirebase } from "../services/childrenService";
 
-export default function AddRecord({ onAdd }) {
+export default function AddRecord() {
   const [form, setForm] = useState({
     name: "", age: "", gender: "boys", village: "Block A", weight: "", height: "",
   });
   const [toast, setToast] = useState(null);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const update = useCallback((k, v) => setForm((p) => ({ ...p, [k]: v })), []);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Clear previous error
     setError("");
 
@@ -44,18 +46,25 @@ export default function AddRecord({ onAdd }) {
     const haz = lmsZScore(ht, age, form.gender, "height");
     const grade = classifyChild(waz, haz);
 
-    onAdd({
-      id: Date.now(),
-      name: form.name.trim(),
-      age,
-      gender: form.gender,
-      village: form.village,
-      records: [{ month: age, weight: wt, height: ht }],
-    });
+    setLoading(true);
+    try {
+      await saveChildToFirebase({
+        id: Date.now().toString(),
+        name: form.name.trim(),
+        age,
+        gender: form.gender,
+        village: form.village,
+        records: [{ month: age, weight: wt, height: ht }],
+      });
 
-    setToast({ grade, waz: waz.toFixed(2), haz: haz.toFixed(2) });
-    setForm({ name: "", age: "", gender: "boys", village: "Block A", weight: "", height: "" });
-    setTimeout(() => setToast(null), 4000);
+      setToast({ grade, waz: waz.toFixed(2), haz: haz.toFixed(2) });
+      setForm({ name: "", age: "", gender: "boys", village: "Block A", weight: "", height: "" });
+      setTimeout(() => setToast(null), 4000);
+    } catch (err) {
+      setError("Failed to save record to Firebase. Check internet connection.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

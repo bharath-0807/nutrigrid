@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   AlertTriangle, Eye, EyeOff, Lock, User, LogIn,
 } from "lucide-react";
-import { AUTH_USERS } from "../data/authUsers";
+import { loginUser } from "../services/authService";
 
 export default function LoginPage({ onLogin }) {
   const [username, setUsername] = useState("");
@@ -11,24 +11,25 @@ export default function LoginPage({ onLogin }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setError("");
     if (!username.trim() || !password.trim()) {
-      setError("Please enter username and password.");
+      setError("Please enter email and password.");
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      const user = AUTH_USERS.find(
-        (u) => u.username === username.trim() && u.password === password
-      );
+    try {
+      // In Firebase email is standard. If the user types in 'worker1' we can maybe parse it or just expect full email.
+      // E.g., appending @nutrigrid.in for demo compatibility
+      const email = username.includes('@') ? username : `${username}@nutrigrid.in`;
+      
+      const user = await loginUser(email, password);
+      // Wait, App.jsx handles user state centrally when Firebase auth state changes.
+      // But we can trigger onLogin(user) to immediately update UI if needed.
+    } catch (err) {
+      setError(err.message || "Invalid credentials. Please try again.");
       setLoading(false);
-      if (user) {
-        onLogin(user);
-      } else {
-        setError("Invalid username or password. Please try again.");
-      }
-    }, 600);
+    }
   };
 
   const handleKey = (e) => {

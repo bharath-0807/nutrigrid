@@ -31,6 +31,23 @@ export default function Dashboard({ children, grades, stats, goDetail }) {
         </div>
       )}
 
+      {stats.total === 0 && (
+        <div style={{ background: "#F0F4F8", padding: 24, borderRadius: 8, textAlign: "center", marginBottom: 20 }}>
+          <Baby size={32} color="#7A92A8" style={{ margin: "0 auto 12px" }} />
+          <h3 style={{ margin: "0 0 8px 0", color: "#0D1B2A" }}>No Children Found in Firebase</h3>
+          <p style={{ margin: "0 0 16px 0", color: "#3D5166", fontSize: 13 }}>Your Firestore database is currently empty.</p>
+          <button 
+            className="btn-primary" 
+            onClick={() => {
+              import("../services/childrenService").then(m => m.seedInitialData());
+            }} 
+            style={{ margin: "0 auto" }}
+          >
+            <Zap size={14} /> Auto-Seed Demo Data
+          </button>
+        </div>
+      )}
+
       <div className="stat-grid">
         {[
           { label: "Total Registered", value: stats.total, Icon: Baby, col: "#00509E", bg: "#EBF3FB", top: "#00509E", note: "+2 this month" },

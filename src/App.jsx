@@ -10,47 +10,43 @@ import AddRecord from "./components/AddRecord";
 import Analytics from "./components/Analytics";
 import Detail from "./components/Detail";
 
-// ── Local Storage helpers ──────────────────────────────────
-const STORAGE_KEY = "nutrigrid-children";
-
-function loadChildren() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    }
-  } catch (e) {
-    console.warn("NutriGrid: Could not load saved data, using defaults.", e);
-  }
-  return INIT_CHILDREN;
-}
-
-function saveChildren(children) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(children));
-  } catch (e) {
-    console.warn("NutriGrid: Could not save data.", e);
-  }
-}
+// Firebase Services
+import { subscribeToAuthChanges, logoutUser } from "./services/authService";
+import { subscribeToChildren, seedInitialData } from "./services/childrenService";
 
 // ── Main App ───────────────────────────────────────────────
 export default function App() {
   const [page, setPage] = useState("landing");
   const [user, setUser] = useState(null);
   const [screen, setScreen] = useState("dashboard");
-  const [children, setChildren] = useState(loadChildren);
+  const [children, setChildren] = useState([]);
   const [selected, setSelected] = useState(null);
   const [pwaEvt, setPwaEvt] = useState(null);
-
-  // Persist children to localStorage on every change
-  useEffect(() => {
-    saveChildren(children);
-  }, [children]);
+  const [loading, setLoading] = useState(true);
 
   // Set browser tab title
   useEffect(() => {
     document.title = "NutriGrid | WHO LMS";
+  }, []);
+
+  // Firebase Subscriptions for Auth and Real-time Children Data
+  useEffect(() => {
+    const unsubscribeAuth = subscribeToAuthChanges((u) => {
+      setUser(u);
+      if (u) {
+        setPage("app");
+      }
+    });
+
+    const unsubscribeChildren = subscribeToChildren((data) => {
+      setChildren(data);
+      setLoading(false);
+    });
+
+    return () => {
+      unsubscribeAuth();
+      unsubscribeChildren();
+    };
   }, []);
 
   // PWA install prompt
@@ -74,10 +70,12 @@ export default function App() {
   const grades = useMemo(() => {
     const g = {};
     children.forEach((c) => {
-      const last = c.records[c.records.length - 1];
-      const waz = lmsZScore(last.weight, last.month, c.gender, "weight");
-      const haz = lmsZScore(last.height, last.month, c.gender, "height");
-      g[c.id] = classifyChild(waz, haz);
+      if(c.records && c.records.length > 0) {
+        const last = c.records[c.records.length - 1];
+        const waz = lmsZScore(last.weight, last.month, c.gender, "weight");
+        const haz = lmsZScore(last.height, last.month, c.gender, "height");
+        g[c.id] = classifyChild(waz, haz);
+      }
     });
     return g;
   }, [children]);
@@ -90,13 +88,22 @@ export default function App() {
   }), [children, grades]);
 
   const goDetail = useCallback((c) => { setSelected(c); setScreen("detail"); }, []);
-  const handleAdd = useCallback((c) => setChildren((p) => [...p, c]), []);
+  
+  // Notice we don't need handleAdd anymore because real-time listener updates `children` automatically.
+  
   const handleLogin = useCallback((u) => { setUser(u); setPage("app"); }, []);
-  const handleLogout = useCallback(() => { setUser(null); setPage("landing"); setScreen("dashboard"); }, []);
+  const handleLogout = useCallback(() => { 
+    logoutUser().then(() => {
+      setUser(null); 
+      setPage("landing"); 
+      setScreen("dashboard"); 
+    });
+  }, []);
 
   // ── Landing / Login gates ──
   if (page === "landing") return <LandingPage onLogin={() => setPage("login")} />;
   if (page === "login") return <LoginPage onLogin={handleLogin} />;
+
 
   // ── Page metadata ──
   const meta = {
@@ -163,7 +170,7 @@ export default function App() {
           </div>
           {screen === "dashboard" && <Dashboard children={children} grades={grades} stats={stats} goDetail={goDetail} />}
           {screen === "children" && <ChildrenList children={children} grades={grades} goDetail={goDetail} setScreen={setScreen} />}
-          {screen === "add" && <AddRecord onAdd={handleAdd} />}
+          {screen === "add" && <AddRecord />}
           {screen === "analytics" && <Analytics children={children} grades={grades} stats={stats} />}
           {screen === "detail" && <Detail child={selected} grades={grades} setScreen={setScreen} />}
         </div>
