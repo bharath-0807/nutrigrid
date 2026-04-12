@@ -312,43 +312,121 @@ export function generateChildPDF(child, grade, waz, haz, dietData) {
 /**
  * Generate district-level ICDS report PDF.
  */
-export function generatePDF(children, grades) {
+export function generatePDF(children, grades, timeFilter = "all") {
   const doc = new jsPDF();
+  
+  // ── FILTER CHILDREN BASED ON TIME FILTER ──
+  let filtered = children;
+  let reportTitle = "ICDS Nutritional Assessment Report";
+  if (timeFilter === 3) {
+    filtered = children.filter(c => {
+      const last = c.records[c.records.length - 1];
+      return last && last.month <= 3;
+    });
+    reportTitle = "ICDS 0-3 Months Assessment Report";
+  } else if (timeFilter === 6) {
+    filtered = children.filter(c => {
+      const last = c.records[c.records.length - 1];
+      return last && last.month <= 6;
+    });
+    reportTitle = "ICDS 0-6 Months Assessment Report";
+  }
+
+  // ── START DRAWING PDF ──
   doc.setFillColor(0, 59, 115); doc.rect(0, 0, 210, 34, "F");
   doc.setFillColor(0, 80, 158); doc.rect(0, 30, 210, 4, "F");
   doc.setTextColor(255, 255, 255); doc.setFontSize(16); doc.setFont("helvetica", "bold");
-  doc.text("NutriGrid - ICDS Nutritional Assessment Report", 14, 14);
+  doc.text("NutriGrid - " + reportTitle, 14, 14);
   doc.setFontSize(8.5); doc.setFont("helvetica", "normal");
   doc.text("Coimbatore District  |  March 2026  |  WHO LMS Box-Cox Algorithm  |  SAM/MAM Classification", 14, 24);
 
-  const total = children.length;
-  const sam = children.filter((c) => grades[c.id] === "SAM").length;
-  const mam = children.filter((c) => grades[c.id] === "MAM").length;
-  const normal = children.filter((c) => grades[c.id] === "Normal").length;
+  const total = filtered.length;
+  const sam = filtered.filter((c) => grades[c.id] === "SAM").length;
+  const mam = filtered.filter((c) => grades[c.id] === "MAM").length;
+  const normal = filtered.filter((c) => grades[c.id] === "Normal").length;
   const gam = sam + mam;
 
   doc.setTextColor(10, 10, 26); doc.setFontSize(12); doc.setFont("helvetica", "bold");
-  doc.text("Programme Indicators", 14, 46);
+  doc.text("Programme Indicators (N=" + total + ")", 14, 46);
   autoTable(doc, {
     startY: 50,
     head: [["Indicator", "Count", "Rate", "WHO Threshold"]],
     body: [
       ["Total Assessed", total, "100%", "—"],
-      ["Normal", normal, `${Math.round((normal / total) * 100)}%`, "Target ≥75%"],
-      ["GAM (MAM+SAM)", gam, `${Math.round((gam / total) * 100)}%`, "Emergency >15%"],
-      ["MAM", mam, `${Math.round((mam / total) * 100)}%`, "Alert >10%"],
-      ["SAM", sam, `${Math.round((sam / total) * 100)}%`, "Emergency >2%"],
+      ["Normal", normal, `${total ? Math.round((normal / total) * 100) : 0}%`, "Target ≥75%"],
+      ["GAM (MAM+SAM)", gam, `${total ? Math.round((gam / total) * 100) : 0}%`, "Emergency >15%"],
+      ["MAM", mam, `${total ? Math.round((mam / total) * 100) : 0}%`, "Alert >10%"],
+      ["SAM", sam, `${total ? Math.round((sam / total) * 100) : 0}%`, "Emergency >2%"],
     ],
     headStyles: { fillColor: [0, 59, 115] },
     alternateRowStyles: { fillColor: [240, 244, 248] },
   });
 
+  let y = doc.lastAutoTable.finalY + 12;
+
+  // ── COMBINED SCATTER CHART IN PDF ──
+  if (total > 0 && y < 160) {
+    doc.setFontSize(12); doc.setFont("helvetica", "bold");
+    doc.text("District WAZ Dispersal (Combined Chart)", 14, y);
+    y += 6;
+    
+    // Draw scatter box
+    const cx = 14, cy = y, cw = 182, ch = 50;
+    doc.setFillColor(244, 247, 251); doc.rect(cx, cy, cw, ch, "F");
+    doc.setDrawColor(208, 217, 228); doc.rect(cx, cy, cw, ch, "S");
+    
+    // Helper to map WAZ coordinates (Y-axis: +2 to -5, X-axis: 0 to 60mo based on time filter)
+    const maxM = timeFilter === 3 ? 3 : timeFilter === 6 ? 6 : 60;
+    const toY = (v) => { const mn = -5, mx = 2; return Math.min(Math.max(cy + ch - (((v - mn) / (mx - mn)) * ch), cy), cy + ch); };
+    const toX = (m) => cx + (Math.min(m, maxM) / maxM) * cw;
+
+    // Draw WHO threshold lines
+    doc.setDrawColor(176, 58, 46); doc.setLineDashPattern([2, 1], 0); // SAM
+    doc.line(cx, toY(-3), cx + cw, toY(-3));
+    doc.setDrawColor(202, 111, 30); doc.line(cx, toY(-2), cx + cw, toY(-2)); // MAM
+    doc.setDrawColor(30, 132, 73); doc.line(cx, toY(0), cx + cw, toY(0)); // Median
+    doc.setLineDashPattern([], 0);
+
+    // Labels for lines
+    doc.setFontSize(6); 
+    doc.setTextColor(176, 58, 46); doc.text("<-3SD SAM", cx + 2, toY(-3) - 1);
+    doc.setTextColor(202, 111, 30); doc.text("<-2SD MAM", cx + 2, toY(-2) - 1);
+    doc.setTextColor(30, 132, 73); doc.text("Median", cx + 2, toY(0) - 1);
+
+    // Draw all children dots
+    filtered.forEach(c => {
+      const last = c.records[c.records.length - 1];
+      if (last) {
+        const cwz = lmsZScore(last.weight, last.month, c.gender, "weight");
+        const px = toX(last.month);
+        const py = toY(cwz);
+        
+        // Color code dots
+        if (cwz < -3) doc.setFillColor(176, 58, 46);
+        else if (cwz < -2) doc.setFillColor(202, 111, 30);
+        else doc.setFillColor(30, 132, 73);
+        
+        // Slightly transparent look using small circle diameter
+        doc.circle(px, py, 1.2, "F");
+      }
+    });
+
+    // X-axis legend
+    doc.setTextColor(100, 120, 140); doc.setFontSize(7);
+    doc.text(`0 months`, cx, cy + ch + 5);
+    doc.text(`${maxM} months`, cx + cw - 12, cy + ch + 5);
+    
+    y = cy + ch + 12;
+  }
+
+  // ── INDIVIDUAL TABLE ──
+  doc.setTextColor(10, 10, 26);
   doc.setFontSize(12); doc.setFont("helvetica", "bold");
-  doc.text("Individual Records", 14, doc.lastAutoTable.finalY + 12);
+  doc.text("Individual Records", 14, y + 6);
   autoTable(doc, {
-    startY: doc.lastAutoTable.finalY + 16,
+    startY: y + 10,
     head: [["Name", "Age", "Sex", "Block", "Wt(kg)", "Ht(cm)", "WAZ", "HAZ", "WHO Grade"]],
-    body: children.map((c) => {
+    body: filtered.map((c) => {
       const last = c.records[c.records.length - 1];
       return [
         c.name, last.month, c.gender === "boys" ? "M" : "F", c.village,
@@ -363,7 +441,16 @@ export function generatePDF(children, grades) {
     alternateRowStyles: { fillColor: [240, 244, 248] },
   });
 
-  doc.setFontSize(7.5); doc.setTextColor(120, 140, 160);
-  doc.text("WHO LMS Box-Cox z-score  |  SAM: WAZ/HAZ<-3  |  MAM: -3 to -2  |  NutriGrid ICDS System", 14, 284);
-  doc.save("NutriGrid_ICDS_Report.pdf");
+  const footerText = "WHO LMS Box-Cox z-score  |  SAM: WAZ/HAZ<-3  |  MAM: -3 to -2  |  NutriGrid ICDS System" + (timeFilter !== "all" ? ` | Filter: 0-${timeFilter}m` : "");
+
+  // Apply footer to all pages
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7.5); doc.setTextColor(120, 140, 160);
+    doc.text(footerText, 14, 284);
+  }
+
+  const fn = timeFilter !== "all" ? `NutriGrid_0_${timeFilter}m_Report.pdf` : "NutriGrid_ICDS_Report.pdf";
+  doc.save(fn);
 }

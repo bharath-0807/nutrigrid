@@ -74,7 +74,20 @@ export default function Analytics({ children, grades, stats }) {
         </div>
       </div>
       <div className="card" style={{ gridColumn: "1 / -1" }}>
-        <div className="card-header"><div><div className="card-title">Monthly ICDS Report — March 2026</div><div className="card-subtitle">WHO LMS classification · Ready for CDPO submission</div></div><button className="btn-primary" onClick={() => generatePDF(children, grades)}><FileText size={13} /> Download PDF</button></div>
+        <div className="card-header">
+          <div><div className="card-title">Monthly ICDS Report — March 2026</div><div className="card-subtitle">WHO LMS classification · Ready for CDPO submission</div></div>
+        </div>
+        <div className="card-body" style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+          <button className="btn-primary" onClick={() => generatePDF(children, grades, "all")}>
+            <FileText size={14} /> Comprehensive Roster
+          </button>
+          <button className="btn-ghost" onClick={() => generatePDF(children, grades, 3)}>
+            <FileText size={14} /> 0-3 Months Report
+          </button>
+          <button className="btn-ghost" onClick={() => generatePDF(children, grades, 6)}>
+            <FileText size={14} /> 0-6 Months Report
+          </button>
+        </div>
       </div>
     </div>
   );
