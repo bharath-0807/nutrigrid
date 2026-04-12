@@ -26,7 +26,7 @@ export default function App() {
 
   // Set browser tab title
   useEffect(() => {
-    document.title = "NutriGrid | WHO LMS";
+    document.title = "NutriGrid — WHO Child Growth Monitor";
   }, []);
 
   // Firebase Subscriptions for Auth and Real-time Children Data
