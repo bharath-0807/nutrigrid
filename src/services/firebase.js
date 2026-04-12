@@ -3,7 +3,7 @@ import { getAuth } from "firebase/auth";
 import { getFirestore, enableIndexedDbPersistence } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAOokqlvstif0BhSgeqn7fMqrtqGpaHm5k",
+  apiKey: "AIzaSyAOokqlvstifOBhSqeqN7fMqrtqGpaHm5k",
   authDomain: "nutrigrid-d82d5.firebaseapp.com",
   projectId: "nutrigrid-d82d5",
   storageBucket: "nutrigrid-d82d5.firebasestorage.app",
