@@ -289,6 +289,38 @@ h1, h2, h3, h4, h5, h6 {
 
 .page-body { padding:32px; flex:1; max-width: 1400px; margin: 0 auto; width: 100%; }
 
+/* ── PAGE TITLE BAR ── */
+.page-title-bar {
+  display:flex; align-items:flex-start; justify-content:space-between;
+  margin-bottom:28px; gap:20px;
+}
+.page-title-bar h2 { font-size:24px; font-weight:800; color:var(--secondary); font-family:var(--font-heading); letter-spacing:-0.02em; }
+.page-title-bar p  { font-size:13px; color:var(--text3); margin-top:4px; font-weight:500; }
+
+/* ── PROGRESS BARS ── */
+.progress-wrap { margin-bottom:12px; }
+.progress-label-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:6px; }
+.progress-bar { height:6px; background:var(--bg2); border-radius:var(--radius-pill); overflow:hidden; }
+.progress-fill { height:100%; border-radius:var(--radius-pill); transition:width 0.6s cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* ── FORM ERROR ── */
+.form-error {
+  background:var(--sam-bg); border:1px solid var(--sam-bd); border-left:3px solid var(--sam);
+  border-radius:8px; padding:12px 16px; font-size:13px; color:#9F1239;
+  font-weight:500; margin-bottom:16px;
+}
+
+/* ── TOAST ── */
+.toast {
+  display:flex; align-items:center; gap:10px;
+  padding:14px 18px; border-radius:10px; font-size:13px; font-weight:500;
+  border:1px solid; border-left:4px solid;
+  margin-bottom:16px; animation:fadeInUp 0.4s ease;
+}
+
+/* ── BLINK ANIMATION ── */
+@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
 /* ── CARDS (GLASS/SOFT ELEVATION) ── */
 .card {
   background:var(--white); border:1px solid var(--border);
@@ -477,15 +509,21 @@ tbody tr:hover td { background:var(--bg); color:var(--secondary); }
   .stat-grid { grid-template-columns:1fr; }
   .form-grid { grid-template-columns:1fr; }
   .feature-grid { grid-template-columns:1fr; }
+  .analytics-grid { grid-template-columns:1fr; }
+  .who-indicators-grid { grid-template-columns:1fr 1fr !important; }
+  .page-title-bar { flex-direction:column; gap:8px; }
   .mobile-nav { display:flex; position:fixed; bottom:0; left:0; right:0; background:rgba(255,255,255,0.9); backdrop-filter:blur(10px); border-top:1px solid var(--border); z-index:100; padding:10px; justify-content:space-around; }
   .page-body { padding:16px; }
   .top-bar { padding: 0 16px; height: 60px;}
   .top-bar-breadcrumb .current { font-size: 15px;}
+  .login-card { margin:16px; max-width:100%; }
+  .login-header { padding: 28px 24px 16px; }
+  .login-body { padding: 16px 24px 28px; }
   
   /* Mobile Landing Flex Stacking */
   .hero-cta { display:flex; flex-direction:column; gap:12px; }
   .hero-cta button { width: 100%; justify-content: center; }
-  .land-nav-links { display:none; } /* Hide text links on mobile, but keep sign in if it was separate, wait... I just hide the links container completely for now to save space */
+  .land-nav-links { display:none; }
 }
 
 /* ══════════════════════════════════════════════════════════

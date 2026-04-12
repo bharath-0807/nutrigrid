@@ -19,13 +19,10 @@ export default function LoginPage({ onLogin }) {
     }
     setLoading(true);
     try {
-      // In Firebase email is standard. If the user types in 'worker1' we can maybe parse it or just expect full email.
-      // E.g., appending @nutrigrid.in for demo compatibility
       const email = username.includes('@') ? username : `${username}@nutrigrid.in`;
-      
-      await loginUser(email, password);
-      // Wait, App.jsx handles user state centrally when Firebase auth state changes.
-      // But we can trigger onLogin(user) to immediately update UI if needed.
+      const user = await loginUser(email, password);
+      // Immediately transition to dashboard
+      onLogin(user);
     } catch (err) {
       setError(err.message || "Invalid credentials. Please try again.");
       setLoading(false);
@@ -121,6 +118,16 @@ export default function LoginPage({ onLogin }) {
               </>
             )}
           </button>
+          <div className="login-divider" />
+          <div style={{ fontSize: 12, color: "#475569", fontWeight: 600, marginBottom: 10, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Demo Credentials</div>
+          <div className="demo-user-row" onClick={() => { setUsername("worker1"); setPassword("icds123"); setError(""); }}>
+            <div className="demo-user-info"><strong>worker1</strong><span>Anganwadi Worker · Block A</span></div>
+            <div className="demo-user-badge">icds123</div>
+          </div>
+          <div className="demo-user-row" onClick={() => { setUsername("cdpo"); setPassword("cdpo2026"); setError(""); }}>
+            <div className="demo-user-info"><strong>cdpo</strong><span>CDPO Officer · District HQ</span></div>
+            <div className="demo-user-badge">cdpo2026</div>
+          </div>
 
           <div className="login-footer-note">
             🔒 Secure ICDS System · Jansons Institute of Technology
