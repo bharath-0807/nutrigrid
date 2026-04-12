@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { ChevronRight, Download, LogOut } from "lucide-react";
 import { lmsZScore, classifyChild } from "./utils/lmsCalc";
-import { NAV, INIT_CHILDREN } from "./data/clinicalConfig";
+import { NAV } from "./data/clinicalConfig";
 import LoginPage from "./components/LoginPage";
 import LandingPage from "./components/LandingPage";
 import Dashboard from "./components/Dashboard";
@@ -12,7 +12,7 @@ import Detail from "./components/Detail";
 
 // Firebase Services
 import { subscribeToAuthChanges, logoutUser } from "./services/authService";
-import { subscribeToChildren, seedInitialData } from "./services/childrenService";
+import { subscribeToChildren } from "./services/childrenService";
 
 // ── Main App ───────────────────────────────────────────────
 export default function App() {
@@ -22,7 +22,7 @@ export default function App() {
   const [children, setChildren] = useState([]);
   const [selected, setSelected] = useState(null);
   const [pwaEvt, setPwaEvt] = useState(null);
-  const [loading, setLoading] = useState(true);
+
 
   // Set browser tab title
   useEffect(() => {
@@ -40,7 +40,6 @@ export default function App() {
 
     const unsubscribeChildren = subscribeToChildren((data) => {
       setChildren(data);
-      setLoading(false);
     });
 
     return () => {

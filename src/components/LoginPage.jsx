@@ -23,7 +23,7 @@ export default function LoginPage({ onLogin }) {
       // E.g., appending @nutrigrid.in for demo compatibility
       const email = username.includes('@') ? username : `${username}@nutrigrid.in`;
       
-      const user = await loginUser(email, password);
+      await loginUser(email, password);
       // Wait, App.jsx handles user state centrally when Firebase auth state changes.
       // But we can trigger onLogin(user) to immediately update UI if needed.
     } catch (err) {

@@ -3,9 +3,8 @@ import {
   signOut,
   onAuthStateChanged 
 } from "firebase/auth";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "./firebase";
-import { AUTH_USERS } from "../data/authUsers";
 
 // We'll map email addresses to our demo users. 
 // e.g. "worker1@nutrigrid.in" -> "icds123"

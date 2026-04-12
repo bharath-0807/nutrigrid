@@ -133,8 +133,8 @@ export default function AddRecord() {
               </select>
             </div>
           </div>
-          <button className="btn-primary" onClick={handleSubmit} style={{ width: "100%", justifyContent: "center", padding: "11px", fontSize: 13.5 }}>
-            <Brain size={14} /> Register & Compute WHO LMS Grade
+          <button className="btn-primary" onClick={handleSubmit} disabled={loading} style={{ width: "100%", justifyContent: "center", padding: "11px", fontSize: 13.5 }}>
+            {loading ? "Processing..." : <><Brain size={14} /> Register & Compute WHO LMS Grade</>}
           </button>
         </div>
       </div>
