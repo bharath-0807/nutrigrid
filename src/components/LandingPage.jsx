@@ -40,7 +40,7 @@ export default function LandingPage({ onLogin }) {
         <div className="land-nav-links">
           <span className="land-nav-link">Features</span>
           <span className="land-nav-link">WHO Grading</span>
-          <button className="hero-btn-primary" onClick={onLogin} style={{ padding: "8px 20px", fontSize: 13 }}>
+          <button className="btn-primary" onClick={onLogin} style={{ padding: "8px 20px", fontSize: 13 }}>
             Sign In <ArrowRight size={13} />
           </button>
         </div>
@@ -62,10 +62,10 @@ export default function LandingPage({ onLogin }) {
               NutriGrid implements the WHO official LMS Box-Cox z-score algorithm — the same method used by UNICEF, India NHM, and NRC centres — to classify SAM, MAM, and GAM with clinical precision.
             </p>
             <div className="hero-cta">
-              <button className="hero-btn-primary" onClick={onLogin}>
+              <button className="btn-primary" onClick={onLogin}>
                 Sign In to System <ArrowRight size={14} />
               </button>
-              <button className="hero-btn-outline">WHO LMS Reference</button>
+              <button className="btn-ghost" style={{background: 'rgba(255,255,255,0.1)'}}>WHO LMS Reference</button>
             </div>
             <div className="hero-stats-strip">
               {[
@@ -176,7 +176,7 @@ export default function LandingPage({ onLogin }) {
           <p>
             Sign in with a demo account — register children, view WHO growth charts, classify SAM/MAM, and generate ICDS-formatted reports instantly.
           </p>
-          <button className="hero-btn-primary" onClick={onLogin} style={{ fontSize: 14, padding: "12px 28px" }}>
+          <button className="btn-primary" onClick={onLogin} style={{ fontSize: 14, padding: "12px 28px", boxShadow: "0 8px 24px rgba(0,0,0,0.2)"}}>
             <LogIn size={15} /> Sign In to System
           </button>
         </div>
