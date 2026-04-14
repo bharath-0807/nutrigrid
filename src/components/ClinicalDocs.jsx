@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Copy, AlertTriangle, CheckCircle, FileText, Download, ExternalLink, Activity, ArrowRight } from "lucide-react";
+import { AlertTriangle, CheckCircle, FileText, Download, ExternalLink } from "lucide-react";
 import { getOptimalTarget, getWHOThresholds } from "../utils/lmsCalc";
 
 const REFERENCE_DOCS = [
