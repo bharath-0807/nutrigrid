@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ArrowLeft, FileText, Activity, TrendingUp, MapPin, ClipboardList, AlertTriangle, CheckCircle } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { lmsZScore, classifyChild, getGrowthVelocity, buildChartData } from "../utils/lmsCalc";
+import { lmsZScore, classifyChild, getGrowthVelocity, buildChartData, getOptimalTarget } from "../utils/lmsCalc";
 import { generateChildPDF } from "../utils/pdfGenerator";
 import { GRADE_CFG, CLINICAL_RECS, CHART_STYLES as CS } from "../data/clinicalConfig";
 import DietForecast from "./DietForecast";
@@ -58,8 +58,22 @@ export default function Detail({ child, grades, setScreen }) {
           </div>
         </div>
         <div className="metric-grid" style={{ margin: 0 }}>
-          <div className="metric-card"><Activity size={14} color="#00509E" /><div className="metric-value" style={{ color: "#00509E" }}>{last.weight}<span style={{ fontSize: 13, fontWeight: 400 }}> kg</span></div><div className="metric-label">Weight</div></div>
-          <div className="metric-card"><TrendingUp size={14} color="#007B83" /><div className="metric-value" style={{ color: "#007B83" }}>{last.height}<span style={{ fontSize: 13, fontWeight: 400 }}> cm</span></div><div className="metric-label">Height</div></div>
+          <div className="metric-card" style={{ position: "relative" }}>
+            <Activity size={14} color="#00509E" />
+            <div className="metric-value" style={{ color: "#00509E" }}>{last.weight}<span style={{ fontSize: 13, fontWeight: 400 }}> kg</span></div>
+            <div className="metric-label">Current Weight</div>
+            <div style={{ marginTop: 8, fontSize: 11, color: "#7A92A8", background: "#f8fafc", padding: "4px 8px", borderRadius: 4, display: "inline-block", border: "1px dashed #cbd5e1" }}>
+              WHO Ideal Target: <strong>{getOptimalTarget(last.month, child.gender, "weight").toFixed(1)} kg</strong>
+            </div>
+          </div>
+          <div className="metric-card" style={{ position: "relative" }}>
+            <TrendingUp size={14} color="#007B83" />
+            <div className="metric-value" style={{ color: "#007B83" }}>{last.height}<span style={{ fontSize: 13, fontWeight: 400 }}> cm</span></div>
+            <div className="metric-label">Current Height</div>
+            <div style={{ marginTop: 8, fontSize: 11, color: "#7A92A8", background: "#f8fafc", padding: "4px 8px", borderRadius: 4, display: "inline-block", border: "1px dashed #cbd5e1" }}>
+              WHO Ideal Target: <strong>{getOptimalTarget(last.month, child.gender, "height").toFixed(1)} cm</strong>
+            </div>
+          </div>
         </div>
       </div>
 

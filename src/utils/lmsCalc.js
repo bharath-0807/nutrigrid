@@ -45,6 +45,13 @@ export function lmsZScore(value, age, gender, type) {
 }
 
 /**
+ * Get the exact WHO median (optimal target) for a specific measurement.
+ */
+export function getOptimalTarget(age, gender, type) {
+  return lmsInterpolate(LMS_TABLES[gender][type], age).M;
+}
+
+/**
  * Classify child as SAM, MAM, or Normal based on WAZ and HAZ.
  */
 export function classifyChild(waz, haz) {
