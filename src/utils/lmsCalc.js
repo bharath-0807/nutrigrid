@@ -52,6 +52,15 @@ export function getOptimalTarget(age, gender, type) {
 }
 
 /**
+ * Calculate the expected measurement (in kg or cm) for a given WHO z-score threshold.
+ */
+export function getWHOThresholds(age, gender, type, z) {
+  const { L, M, S } = lmsInterpolate(LMS_TABLES[gender][type], age);
+  if (Math.abs(L) < 0.0001) return M * Math.exp(S * z);
+  return M * Math.pow(1 + L * S * z, 1 / L);
+}
+
+/**
  * Classify child as SAM, MAM, or Normal based on WAZ and HAZ.
  */
 export function classifyChild(waz, haz) {

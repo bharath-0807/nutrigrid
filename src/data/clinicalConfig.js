@@ -4,7 +4,7 @@
 // ══════════════════════════════════════════════════════════════
 
 import {
-  LayoutDashboard, Users, PlusCircle, BarChart2,
+  LayoutDashboard, Users, PlusCircle, BarChart2, BookOpen
 } from "lucide-react";
 
 // WHO Grade display configuration
@@ -68,6 +68,7 @@ export const NAV = [
   { id: "children",  label: "Children",   Icon: Users },
   { id: "add",       label: "Add Record", Icon: PlusCircle },
   { id: "analytics", label: "Analytics",  Icon: BarChart2 },
+  { id: "docs",      label: "Medical & WHO Limits", Icon: BookOpen },
 ];
 
 // Recharts shared styling

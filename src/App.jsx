@@ -9,6 +9,7 @@ import ChildrenList from "./components/ChildrenList";
 import AddRecord from "./components/AddRecord";
 import Analytics from "./components/Analytics";
 import Detail from "./components/Detail";
+import ClinicalDocs from "./components/ClinicalDocs";
 
 // Firebase Services
 import { subscribeToAuthChanges, logoutUser } from "./services/authService";
@@ -110,6 +111,7 @@ export default function App() {
     children: { title: "Child Registry", sub: `${children.length} children · WHO LMS graded` },
     add: { title: "Register Child", sub: "New anthropometric measurement" },
     analytics: { title: "Analytics & Reports", sub: "SAM/MAM/GAM indicators" },
+    docs: { title: "Clinical & WHO Proofs", sub: "Official medical reference charts" },
     detail: { title: selected?.name ?? "", sub: `${selected?.records?.[selected.records.length - 1]?.month ?? ""} months · ${selected?.village ?? ""}` },
   };
   const pt = meta[screen] ?? meta.dashboard;
@@ -171,6 +173,7 @@ export default function App() {
           {screen === "children" && <ChildrenList children={children} grades={grades} goDetail={goDetail} setScreen={setScreen} />}
           {screen === "add" && <AddRecord />}
           {screen === "analytics" && <Analytics children={children} grades={grades} stats={stats} />}
+          {screen === "docs" && <ClinicalDocs />}
           {screen === "detail" && <Detail child={selected} grades={grades} setScreen={setScreen} />}
         </div>
       </main>
