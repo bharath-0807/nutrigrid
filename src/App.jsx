@@ -13,7 +13,7 @@ import ClinicalDocs from "./components/ClinicalDocs";
 
 // Firebase Services
 import { subscribeToAuthChanges, logoutUser } from "./services/authService";
-import { subscribeToChildren } from "./services/childrenService";
+import { subscribeToChildren, seedInitialData } from "./services/childrenService";
 
 // ── Main App ───────────────────────────────────────────────
 export default function App() {
@@ -142,6 +142,17 @@ export default function App() {
             <div className="user-avatar">{roleIcon}</div>
             <div><strong>{user?.role ?? "Worker"}</strong><span>{user?.block ?? "Coimbatore"}</span></div>
           </div>
+          <button 
+            className="sidebar-logout-btn" 
+            onClick={() => {
+              if (window.confirm("This will populate 8 diverse demo cases for the judges. Proceed?")) {
+                seedInitialData().then(() => alert("Demo suite populated successfully!"));
+              }
+            }}
+            style={{ marginBottom: 10, color: "#007B83", borderColor: "#80CCCE", background: "#E0F5F5" }}
+          >
+            <Download size={13} /> Sync Demo Data
+          </button>
           <button className="sidebar-logout-btn" onClick={handleLogout}>
             <LogOut size={13} /> Sign Out
           </button>
