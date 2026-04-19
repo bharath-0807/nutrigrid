@@ -1,4 +1,6 @@
-  ArrowRight, LogIn, Download
+import {
+  Brain, HeartPulse, Bell, ClipboardList, Wifi, Shield,
+  ArrowRight, LogIn, Download, Sprout
 } from "lucide-react";
 import { generateProposalPDF } from "../utils/proposalGenerator";
 
@@ -30,7 +32,7 @@ export default function LandingPage({ onLogin }) {
     <div className="landing">
       <nav className="land-nav">
         <div className="land-logo">
-          <div className="land-logo-icon">🌱</div>
+          <div className="land-logo-icon"><Sprout size={20} /></div>
           <div>
             <div className="land-logo-text">NutriGrid</div>
             <div className="land-logo-sub">WHO LMS · ICDS System</div>
@@ -198,7 +200,7 @@ export default function LandingPage({ onLogin }) {
 
       <footer className="land-footer">
         <div className="land-footer-left">
-          🌱 NutriGrid v2.0 · WHO LMS Algorithm · Jansons Institute of Technology, Coimbatore
+          <Sprout size={12} style={{ marginRight: 6 }} /> NutriGrid v2.0 · WHO LMS Algorithm · Jansons Institute of Technology, Coimbatore
         </div>
         <div className="land-footer-right">
           Mohanapriya S · Gayathri M · Lavanya B · Bharath M · Guide: Mrs. Vidhya Gowri V

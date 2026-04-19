@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { ChevronRight, Download, LogOut } from "lucide-react";
+import { ChevronRight, Download, LogOut, Sprout, Stethoscope, Briefcase, Building2, User } from "lucide-react";
 import { lmsZScore, classifyChild } from "./utils/lmsCalc";
 import { NAV } from "./data/clinicalConfig";
 import LoginPage from "./components/LoginPage";
@@ -117,16 +117,16 @@ export default function App() {
   const pt = meta[screen] ?? meta.dashboard;
 
   // Role icon
-  const roleIcon = user?.role === "Anganwadi Worker" ? "👩‍⚕️"
-    : user?.role === "CDPO Officer" ? "👩‍💼"
-    : user?.role === "District Health Officer" ? "🏥" : "👤";
+  const roleIcon = user?.role === "Anganwadi Worker" ? <Stethoscope size={16} />
+    : user?.role === "CDPO Officer" ? <Briefcase size={16} />
+    : user?.role === "District Health Officer" ? <Building2 size={16} /> : <User size={16} />;
 
   return (
     <div className="app-shell">
       {/* ── SIDEBAR ── */}
       <aside className="sidebar">
         <div className="sidebar-logo" onClick={() => setPage("landing")}>
-          <div className="logo-icon">🌱</div>
+          <div className="logo-icon"><Sprout size={20} /></div>
           <div className="logo-text"><h1>NutriGrid</h1><p>ICDS Monitoring System</p></div>
         </div>
         <nav className="sidebar-nav">
@@ -144,9 +144,14 @@ export default function App() {
           </div>
           <button 
             className="sidebar-logout-btn" 
-            onClick={() => {
+            onClick={async () => {
               if (window.confirm("This will populate 8 diverse demo cases for the judges. Proceed?")) {
-                seedInitialData().then(() => alert("Demo suite populated successfully!"));
+                try {
+                  await seedInitialData();
+                  alert("Demo suite populated successfully!");
+                } catch (err) {
+                  alert("Failed to sync. Please check your Firebase Firestore rules. Error: " + err.message);
+                }
               }
             }}
             style={{ marginBottom: 10, color: "#007B83", borderColor: "#80CCCE", background: "#E0F5F5" }}

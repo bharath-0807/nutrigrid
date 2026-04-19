@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { AlertTriangle, CheckCircle, FileText, Download, ExternalLink } from "lucide-react";
+import { AlertTriangle, CheckCircle, FileText, Download, ExternalLink, BookOpen } from "lucide-react";
 import { getOptimalTarget, getWHOThresholds } from "../utils/lmsCalc";
 
 const REFERENCE_DOCS = [
@@ -52,7 +52,9 @@ export default function ClinicalDocs() {
       {/* HEADER SECTION */}
       <div className="page-title-bar" style={{ marginBottom: 24 }}>
         <div>
-          <h1 className="page-title">📚 Clinical Guidelines & Proofs</h1>
+          <h1 className="page-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <BookOpen size={24} color="#00509E" /> Clinical Guidelines & Proofs
+          </h1>
           <div className="page-subtitle">WHO Child Growth Standards • Evidence-based Nutrition</div>
         </div>
       </div>

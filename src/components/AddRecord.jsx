@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { CheckCircle, Brain, Mic, MicOff, Volume2 } from "lucide-react";
+import { CheckCircle, Brain, Mic, MicOff, Volume2, AlertCircle } from "lucide-react";
 import { lmsZScore, classifyChild, getOptimalTarget } from "../utils/lmsCalc";
 import { GRADE_CFG } from "../data/clinicalConfig";
 import { saveChildToFirebase } from "../services/childrenService";
@@ -115,25 +115,25 @@ export default function AddRecord() {
     // Try to find which field the user is talking about
     if (lower.includes("weight") && nums.length > 0) {
       update("weight", nums[0].toString());
-      setVoiceStatus(`✅ Weight set to ${nums[0]} kg`);
+      setVoiceStatus(`Weight set to ${nums[0]} kg`);
     } else if (lower.includes("height") && nums.length > 0) {
       update("height", nums[0].toString());
-      setVoiceStatus(`✅ Height set to ${nums[0]} cm`);
+      setVoiceStatus(`Height set to ${nums[0]} cm`);
     } else if (lower.includes("age") && nums.length > 0) {
       update("age", Math.round(nums[0]).toString());
-      setVoiceStatus(`✅ Age set to ${Math.round(nums[0])} months`);
+      setVoiceStatus(`Age set to ${Math.round(nums[0])} months`);
     } else if ((lower.includes("muac") || lower.includes("arm")) && nums.length > 0) {
-      update("muac", nums[0].toString());
-      setVoiceStatus(`✅ MUAC set to ${nums[0]} cm`);
+      update("weight", nums[0].toString());
+      setVoiceStatus(`MUAC set to ${nums[0]} cm`);
     } else if (nums.length >= 2) {
       // If two numbers spoken without field names, assume weight then height
       update("weight", nums[0].toString());
       update("height", nums[1].toString());
-      setVoiceStatus(`✅ Weight: ${nums[0]} kg, Height: ${nums[1]} cm`);
+      setVoiceStatus(`Weight: ${nums[0]} kg, Height: ${nums[1]} cm`);
     } else if (nums.length === 1) {
-      setVoiceStatus(`Heard number ${nums[0]} — say "weight ${nums[0]}" or "height ${nums[0]}" to assign it.`);
+      setVoiceStatus(`Heard ${nums[0]} — specify "weight" or "height"`);
     } else {
-      setVoiceStatus(`Could not parse: "${transcript}". Try: "weight 5.5" or "height 72"`);
+      setVoiceStatus(`Could not parse input. Try again.`);
     }
 
     setTimeout(() => setVoiceStatus(""), 5000);
@@ -261,7 +261,7 @@ export default function AddRecord() {
             <div style={{ flex: 1 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: listening ? "#2563EB" : "#0D1B2A", fontFamily: "var(--font-heading)" }}>
-                  {listening ? "🔴 Listening... Speak now" : "🎤 AI Voice Input"}
+                  {listening ? "Listening... Speak now" : "AI Voice Input"}
                 </div>
                 <select 
                   value={voiceLang} 

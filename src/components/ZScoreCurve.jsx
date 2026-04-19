@@ -1,4 +1,5 @@
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { AlertCircle, CheckCircle } from 'lucide-react';
 
 // Generate points for a Standard Normal Distribution (Bell Curve)
 const generateBellCurve = (childZ) => {
@@ -91,15 +92,24 @@ export default function ZScoreCurve({ zScore, label, type }) {
       </div>
 
       <div style={{ marginTop: 12, paddingTop: 12, borderTop: "1px solid #F1F5F9" }}>
-        <p style={{ fontSize: 11.5, color: "#475569", lineHeight: 1.5 }}>
+        <div style={{ fontSize: 11.5, color: "#475569", lineHeight: 1.5, display: "flex", gap: 8 }}>
           {zScore < -3 ? (
-            <>⚠️ <strong>Severe Deviation:</strong> This child is in the bottom <span style={{color:"#E11D48"}}>0.1%</span> of the global population. This is a clinical emergency requiring immediate NRC intervention.</>
+            <>
+              <AlertCircle size={14} color="#E11D48" style={{ flexShrink: 0, marginTop: 2 }} />
+              <div><strong>Severe Deviation:</strong> This child is in the bottom <span style={{color:"#E11D48"}}>0.1%</span> of the global population. This is a clinical emergency requiring immediate NRC intervention.</div>
+            </>
           ) : zScore < -2 ? (
-            <>⚠️ <strong>Moderate Deviation:</strong> This child is in the bottom <span style={{color:"#F59E0B"}}>2.3%</span>. Targeted nutritional supplementation (MAM protocol) is required.</>
+            <>
+              <AlertCircle size={14} color="#F59E0B" style={{ flexShrink: 0, marginTop: 2 }} />
+              <div><strong>Moderate Deviation:</strong> This child is in the bottom <span style={{color:"#F59E0B"}}>2.3%</span>. Targeted nutritional supplementation (MAM protocol) is required.</div>
+            </>
           ) : (
-            <>✅ <strong>Normal:</strong> This child is within the expected <span style={{color:"#10B981"}}>95%</span> of the global population. Continue routine monitoring.</>
+            <>
+              <CheckCircle size={14} color="#10B981" style={{ flexShrink: 0, marginTop: 2 }} />
+              <div><strong>Normal:</strong> This child is within the expected <span style={{color:"#10B981"}}>95%</span> of the global population. Continue routine monitoring.</div>
+            </>
           )}
-        </p>
+        </div>
       </div>
     </div>
   );

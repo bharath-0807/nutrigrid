@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  AlertTriangle, Eye, EyeOff, Lock, User, LogIn,
+  AlertTriangle, Eye, EyeOff, Lock, User, LogIn, Sprout
 } from "lucide-react";
 import { loginUser } from "../services/authService";
 
@@ -40,7 +40,7 @@ export default function LoginPage({ onLogin }) {
         {/* Header */}
         <div className="login-header">
           <div className="login-logo">
-            <div className="login-logo-icon">🌱</div>
+            <div className="login-logo-icon"><Sprout size={24} color="#fff" /></div>
             <div>
               <div className="login-logo-text">NutriGrid</div>
               <div className="login-logo-sub">ICDS Monitoring System</div>

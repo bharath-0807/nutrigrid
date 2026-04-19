@@ -62,5 +62,6 @@ export const seedInitialData = async () => {
     console.log("Successfully seeded initial data");
   } catch (e) {
     console.error("Error seeding initial data:", e);
+    throw e;
   }
 };

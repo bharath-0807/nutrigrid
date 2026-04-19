@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ArrowLeft, FileText, Activity, TrendingUp, MapPin, ClipboardList, AlertTriangle, CheckCircle } from "lucide-react";
+import { ArrowLeft, FileText, Activity, TrendingUp, MapPin, ClipboardList, AlertTriangle, CheckCircle, User, Utensils } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { lmsZScore, classifyChild, getGrowthVelocity, buildChartData, getOptimalTarget } from "../utils/lmsCalc";
 import { generateChildPDF } from "../utils/pdfGenerator";
@@ -22,8 +22,8 @@ export default function Detail({ child, grades, setScreen }) {
   const vel = getGrowthVelocity(child.records, chartTab);
 
   const MAIN_TABS = [
-    { id: "growth", label: "📈 Growth & History" },
-    { id: "diet", label: "🥗 Diet & Forecast" },
+    { id: "growth", label: "Growth & History", icon: TrendingUp },
+    { id: "diet", label: "Diet & Forecast", icon: Utensils },
   ];
 
   return (
@@ -33,20 +33,26 @@ export default function Detail({ child, grades, setScreen }) {
         <button className="btn-primary" onClick={() => generateChildPDF(child, g, waz, haz, dietData)}><FileText size={13} /> Download Child Report {dietData ? "(+Diet)" : ""}</button>
       </div>
 
-      <div className="detail-header">
-        <div className="detail-avatar">{child.gender === "boys" ? "👦" : "👧"}</div>
+      <div className="detail-header" style={{ background: "#0F172A", padding: 24, borderRadius: 16, marginBottom: 16, display: "flex", alignItems: "center", gap: 16 }}>
+        <div className="detail-avatar" style={{ width: 48, height: 48, borderRadius: "50%", background: "rgba(255,255,255,0.1)", display: "flex", alignItems: "center", justifyContent: "center" }}><User size={24} color="#fff" /></div>
         <div style={{ flex: 1 }}>
-          <div style={{ fontWeight: 700, fontSize: 20, color: "#fff" }}>{child.name}</div>
-          <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.65)", marginTop: 5, display: "flex", gap: 14, flexWrap: "wrap" }}>
+          <div style={{ fontWeight: 800, fontSize: 24, color: "#fff", fontFamily: "var(--font-heading)" }}>{child.name}</div>
+          <div style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", marginTop: 6, display: "flex", gap: 14, flexWrap: "wrap", fontWeight: 500 }}>
             <span>{last.month} months</span><span>·</span>
             <span>{child.gender === "boys" ? "Male" : "Female"}</span><span>·</span>
-            <span style={{ display: "flex", alignItems: "center", gap: 3 }}><MapPin size={10} />{child.village}</span>
+            <span style={{ display: "flex", alignItems: "center", gap: 4 }}><MapPin size={12} />{child.village}</span>
           </div>
         </div>
         <div style={{ textAlign: "right" }}>
-          <span className={`chip ${cfg.chip}`} style={{ fontSize: 12.5, padding: "5px 14px" }}>{g}</span>
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 6, fontFamily: "IBM Plex Mono" }}>{cfg.full}</div>
+          <span className={`chip ${cfg.chip}`} style={{ fontSize: 13, padding: "6px 16px" }}>{g}</span>
+          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", marginTop: 8, fontFamily: "IBM Plex Mono", fontWeight: 500 }}>{cfg.full}</div>
         </div>
+      </div>
+
+      {/* Z-SCORE CURVES MOVED TO TOP FOR MAXIMUM VISIBILITY */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
+        <ZScoreCurve zScore={waz} type="Weight Distribution (WAZ)" />
+        <ZScoreCurve zScore={haz} type="Height Distribution (HAZ)" />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
@@ -58,7 +64,7 @@ export default function Detail({ child, grades, setScreen }) {
             {vel && <div style={{ fontSize: 11, color: "#7A92A8", marginTop: 3 }}>Velocity: {vel} {chartTab === "weight" ? "kg" : "cm"}/month</div>}
           </div>
         </div>
-        <div className="metric-grid" style={{ margin: 0 }}>
+        <div className="metric-grid" style={{ margin: 0, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
           <div className="metric-card" style={{ position: "relative" }}>
             <Activity size={14} color="#00509E" />
             <div className="metric-value" style={{ color: "#00509E" }}>{last.weight}<span style={{ fontSize: 13, fontWeight: 400 }}> kg</span></div>
@@ -81,7 +87,8 @@ export default function Detail({ child, grades, setScreen }) {
       <div style={{ display: "flex", gap: 6, marginBottom: 14, borderBottom: "2px solid #E8EDF3", paddingBottom: 0 }}>
         {MAIN_TABS.map((t) => (
           <button key={t.id} onClick={() => setMainTab(t.id)}
-            style={{ padding: "9px 20px", border: "none", borderBottom: mainTab === t.id ? "3px solid #00509E" : "3px solid transparent", cursor: "pointer", fontSize: 13, fontWeight: mainTab === t.id ? 700 : 500, fontFamily: "IBM Plex Sans,sans-serif", background: "transparent", color: mainTab === t.id ? "#00509E" : "#7A92A8", transition: "all 0.15s", marginBottom: -2 }}>
+            style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 24px", border: "none", borderBottom: mainTab === t.id ? "3px solid #00509E" : "3px solid transparent", cursor: "pointer", fontSize: 13.5, fontWeight: mainTab === t.id ? 700 : 500, fontFamily: "var(--font-heading)", background: "transparent", color: mainTab === t.id ? "#00509E" : "#7A92A8", transition: "all 0.15s", marginBottom: -2 }}>
+            <t.icon size={16} />
             {t.label}
           </button>
         ))}
@@ -139,10 +146,7 @@ export default function Detail({ child, grades, setScreen }) {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
-            <ZScoreCurve zScore={waz} type="Weight Distribution (WAZ)" />
-            <ZScoreCurve zScore={haz} type="Height Distribution (HAZ)" />
-          </div>
+          {/* ZScoreCurves previously here, now moved to top */}
 
           <div className="ai-box">
              <div className="ai-box-title"><ClipboardList size={12} /> Clinical Protocol — {g} ({cfg.full})</div>
