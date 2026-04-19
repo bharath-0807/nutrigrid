@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { CheckCircle, Brain, Mic, MicOff, Volume2, AlertCircle } from "lucide-react";
+import { CheckCircle, Brain, Mic, MicOff, Volume2 } from "lucide-react";
 import { lmsZScore, classifyChild, getOptimalTarget } from "../utils/lmsCalc";
 import { GRADE_CFG } from "../data/clinicalConfig";
 import { saveChildToFirebase } from "../services/childrenService";
