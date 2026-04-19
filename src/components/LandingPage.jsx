@@ -1,7 +1,6 @@
-import {
-  Brain, HeartPulse, Bell, ClipboardList, Wifi, Shield,
-  ArrowRight, LogIn,
+  ArrowRight, LogIn, Download
 } from "lucide-react";
+import { generateProposalPDF } from "../utils/proposalGenerator";
 
 export default function LandingPage({ onLogin }) {
   const grades = [
@@ -54,18 +53,24 @@ export default function LandingPage({ onLogin }) {
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#4ADE80", display: "inline-block" }} />
               WHO LMS · Jansons Institute of Technology
             </div>
-            <h1 className="hero-title">
-              WHO-Standard SAM/MAM<br />Detection for<br />
-              <span className="accent">Anganwadi Centres</span>
+            <h1 className="hero-title" style={{ fontSize: 'clamp(44px, 6vw, 72px)', lineHeight: 1, marginBottom: 20 }}>
+              Precision Nutrition<br />
+              <span className="accent">Clinical Logic</span>
             </h1>
-            <p className="hero-sub">
-              NutriGrid implements the WHO official LMS Box-Cox z-score algorithm — the same method used by UNICEF, India NHM, and NRC centres — to classify SAM, MAM, and GAM with clinical precision.
+            <p className="hero-sub" style={{ fontSize: 18, color: "rgba(15, 23, 42, 0.7)", maxWidth: 580, marginBottom: 32 }}>
+              NutriGrid bridges the gap between Anganwadi fieldwork and WHO clinical standards. We implement the full <strong>Box-Cox LMS Algorithm</strong> used by global health bodies to protect the next generation.
             </p>
-            <div className="hero-cta">
-              <button className="btn-primary" onClick={onLogin}>
-                Sign In to System <ArrowRight size={14} />
+            <div className="hero-cta" style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <button className="btn-primary" onClick={onLogin} style={{ padding: "14px 32px", fontSize: 15, borderRadius: 12 }}>
+                Enter System <ArrowRight size={16} />
               </button>
-              <button className="btn-ghost" style={{background: 'rgba(255,255,255,0.1)'}}>WHO LMS Reference</button>
+              <button 
+                className="btn-ghost" 
+                onClick={() => window.open('https://www.who.int/tools/child-growth-standards/standards', '_blank')}
+                style={{ background: 'rgba(255,255,255,0.8)', border: '1px solid #E2E8F0', padding: "14px 24px", borderRadius: 12 }}
+              >
+                WHO Method Detail
+              </button>
             </div>
             <div className="hero-stats-strip">
               {[
@@ -176,9 +181,18 @@ export default function LandingPage({ onLogin }) {
           <p>
             Sign in with a demo account — register children, view WHO growth charts, classify SAM/MAM, and generate ICDS-formatted reports instantly.
           </p>
-          <button className="btn-primary" onClick={onLogin} style={{ fontSize: 14, padding: "12px 28px", boxShadow: "0 8px 24px rgba(0,0,0,0.2)"}}>
-            <LogIn size={15} /> Sign In to System
-          </button>
+          <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap", marginTop: 32 }}>
+            <button className="btn-primary" onClick={onLogin} style={{ padding: "14px 32px", fontSize: 15, borderRadius: 12, background: "#fff", color: "#0F172A" }}>
+              <LogIn size={16} /> Launch App Demo
+            </button>
+            <button 
+              className="btn-ghost" 
+              onClick={generateProposalPDF}
+              style={{ padding: "14px 24px", fontSize: 15, borderRadius: 12, color: "#fff", borderColor: "rgba(255,255,255,0.3)", background: "rgba(255,255,255,0.1)" }}
+            >
+              <Download size={16} /> Project Grant Proposal
+            </button>
+          </div>
         </div>
       </section>
 
