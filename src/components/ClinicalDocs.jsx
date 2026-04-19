@@ -132,6 +132,43 @@ export default function ClinicalDocs() {
         </div>
       </div>
 
+      {/* ── SECTION 2.5: EXACT Z-SCORE SCALE (REVIEWER REFERENCE) ── */}
+      <h3 style={{ fontSize: 18, color: "#0D1B2A", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+        <Target size={20} color="#00509E" /> Exact Z-Score Scale (Reviewer Reference)
+      </h3>
+      <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderRadius: 12, padding: "20px 24px", marginBottom: 32, boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
+        <p style={{ fontSize: 13.5, color: "#475569", marginBottom: 20, lineHeight: 1.6 }}>
+          Use this exact mapping scale to explain what a specific Z-Score value means according to the <strong>WHO Child Growth Standards</strong>.
+        </p>
+        
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 20, padding: "12px 16px", background: "#F8FAFC", borderRadius: 8, border: "1px solid #E2E8F0", alignItems: "center" }}>
+            <div style={{ fontWeight: 800, color: "#1E293B", fontSize: 14, fontFamily: "'IBM Plex Mono', monospace" }}>&gt; +3.0</div>
+            <div style={{ fontSize: 13.5, color: "#334155" }}><strong style={{ color: "#0F172A" }}>Very High (e.g., 3.5):</strong> Clinically flagged as severely overweight or obese. Immediate review needed.</div>
+          </div>
+          
+          <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 20, padding: "12px 16px", background: "#F8FAFC", borderRadius: 8, border: "1px solid #E2E8F0", alignItems: "center" }}>
+            <div style={{ fontWeight: 800, color: "#1E293B", fontSize: 14, fontFamily: "'IBM Plex Mono', monospace" }}>+2.0 to +3.0</div>
+            <div style={{ fontSize: 13.5, color: "#334155" }}><strong style={{ color: "#0F172A" }}>Elevated (e.g., 2.5):</strong> At risk of being overweight. Requires diet correction.</div>
+          </div>
+          
+          <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 20, padding: "14px 16px", background: "#ECFDF5", borderRadius: 8, border: "1px solid #A7F3D0", alignItems: "center" }}>
+            <div style={{ fontWeight: 800, color: "#065F46", fontSize: 14, fontFamily: "'IBM Plex Mono', monospace" }}>-2.0 to +2.0</div>
+            <div style={{ fontSize: 13.5, color: "#065F46" }}><strong style={{ color: "#059669" }}>NORMAL (e.g., Z-score 1.0 or -1.5):</strong> Perfect, healthy condition. The child falls safely within the 95% global median.</div>
+          </div>
+          
+          <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 20, padding: "14px 16px", background: "#FFFBEB", borderRadius: 8, border: "1px solid #FDE68A", alignItems: "center" }}>
+            <div style={{ fontWeight: 800, color: "#92400E", fontSize: 14, fontFamily: "'IBM Plex Mono', monospace" }}>-3.0 to -2.0</div>
+            <div style={{ fontSize: 13.5, color: "#92400E" }}><strong style={{ color: "#D97706" }}>MAM (e.g., Z-score -2.5):</strong> Moderate Acute Malnutrition. Requires enrollment in supplementary feeding programs.</div>
+          </div>
+          
+          <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 20, padding: "14px 16px", background: "#FFF1F2", borderRadius: 8, border: "1px solid #FECDD3", alignItems: "center" }}>
+            <div style={{ fontWeight: 800, color: "#9F1239", fontSize: 14, fontFamily: "'IBM Plex Mono', monospace" }}>&lt; -3.0</div>
+            <div style={{ fontSize: 13.5, color: "#9F1239" }}><strong style={{ color: "#E11D48" }}>SAM (e.g., Z-score -3.5):</strong> Severe Acute Malnutrition. Clinical emergency requiring hospitalization at an NRC.</div>
+          </div>
+        </div>
+      </div>
+
       {/* ── SECTION 3: PROTOCOL EXPLANATIONS ── */}
       <h3 style={{ fontSize: 18, color: "#0D1B2A", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
         <Zap size={20} color="#00509E" /> Clinical Classifications & Action Plans
