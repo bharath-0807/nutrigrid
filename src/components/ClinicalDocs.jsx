@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { AlertTriangle, CheckCircle, FileText, Download, ExternalLink, BookOpen, Brain, GitPullRequest, Zap, Target } from "lucide-react";
+import { AlertTriangle, CheckCircle, FileText, Download, ExternalLink, Brain, GitPullRequest, Zap, Target } from "lucide-react";
 import { getOptimalTarget, getWHOThresholds } from "../utils/lmsCalc";
 import ZScoreCurve from "./ZScoreCurve";
 
