@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
-import { AlertTriangle, CheckCircle, FileText, Download, ExternalLink, BookOpen } from "lucide-react";
+import { AlertTriangle, CheckCircle, FileText, Download, ExternalLink, BookOpen, Brain, GitPullRequest, Zap, Target } from "lucide-react";
 import { getOptimalTarget, getWHOThresholds } from "../utils/lmsCalc";
+import ZScoreCurve from "./ZScoreCurve";
 
 const REFERENCE_DOCS = [
   {
@@ -50,12 +51,123 @@ export default function ClinicalDocs() {
   return (
     <div className="dashboard-content" style={{ paddingBottom: 60 }}>
       {/* HEADER SECTION */}
-      <div className="page-title-bar" style={{ marginBottom: 24 }}>
+      <div className="page-title-bar" style={{ marginBottom: 24, padding: "24px 32px", background: "linear-gradient(135deg, #0F172A, #1E293B)", borderRadius: 16, color: "#fff" }}>
         <div>
-          <h1 className="page-title" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <BookOpen size={24} color="#00509E" /> Clinical Guidelines & Proofs
+          <h1 className="page-title" style={{ display: "flex", alignItems: "center", gap: 10, color: "#fff", borderBottom: "none" }}>
+            <Brain size={28} color="#60A5FA" /> Science & Evidence
           </h1>
-          <div className="page-subtitle">WHO Child Growth Standards • Evidence-based Nutrition</div>
+          <div className="page-subtitle" style={{ color: "rgba(255,255,255,0.7)", fontSize: 14 }}>The clinical logic, problem statement, and solution architecture of NutriGrid</div>
+        </div>
+      </div>
+
+      {/* ── SECTION 1: PROBLEM VS SOLUTION ── */}
+      <h3 style={{ fontSize: 18, color: "#0D1B2A", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+        <GitPullRequest size={20} color="#00509E" /> The Invisible Malnutrition Crisis
+      </h3>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 32 }}>
+        <div style={{ background: "#FFF1F2", border: "1px solid #FECDD3", borderRadius: 12, padding: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <AlertTriangle size={20} color="#E11D48" />
+            <span style={{ fontSize: 16, fontWeight: 800, color: "#9F1239" }}>Current Problem</span>
+          </div>
+          <p style={{ fontSize: 13.5, color: "#9F1239", lineHeight: 1.6, marginBottom: 12 }}>
+            Currently, Anganwadi workers manually look up a child's weight/height on complex wall charts. This physical lookup is highly prone to human error, meaning severely acute malnourished (SAM) children slip through the cracks and are not sent to Medical Centres.
+          </p>
+          <ul style={{ fontSize: 13, color: "#9F1239", paddingLeft: 20 }}>
+            <li>Manual calculation errors</li>
+            <li>Lack of real-time multi-level data</li>
+            <li>No statistical precision (No Z-Score derivation)</li>
+          </ul>
+        </div>
+        
+        <div style={{ background: "#ECFDF5", border: "1px solid #A7F3D0", borderRadius: 12, padding: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <Target size={20} color="#059669" />
+            <span style={{ fontSize: 16, fontWeight: 800, color: "#065F46" }}>Our Solution</span>
+          </div>
+          <p style={{ fontSize: 13.5, color: "#065F46", lineHeight: 1.6, marginBottom: 12 }}>
+            NutriGrid replaces wall charts with the official <strong>WHO Box-Cox LMS statistical algorithm</strong>. The worker simply enters numbers, and the app instantly calculates exact Standard Deviations (Z-Scores) with 100% precision.
+          </p>
+          <ul style={{ fontSize: 13, color: "#065F46", paddingLeft: 20 }}>
+            <li>Zero manual calculation errors</li>
+            <li>Instant PDF evidence generation for ICDS reports</li>
+            <li>Automatic clinical classification into SAM / MAM zones</li>
+          </ul>
+        </div>
+      </div>
+
+      {/* ── SECTION 2: WHAT IS A Z-SCORE? ── */}
+      <div className="card" style={{ marginBottom: 32 }}>
+        <div className="card-header" style={{ background: "#F8FAFC" }}>
+          <div>
+            <div className="card-title">What is a Z-Score?</div>
+            <div className="card-subtitle">Understanding the Standard Normal Distribution</div>
+          </div>
+        </div>
+        <div className="card-body" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, alignItems: "center" }}>
+          <div>
+            <p style={{ fontSize: 14, color: "#334155", lineHeight: 1.7, marginBottom: 16 }}>
+              A <strong>Z-Score</strong> is a statistical measurement that describes a value's relationship to the mean (average) of a group of values. It is measured in terms of <strong>Standard Deviations</strong> from the mean.
+            </p>
+            <p style={{ fontSize: 14, color: "#334155", lineHeight: 1.7, marginBottom: 16 }}>
+              The World Health Organization studied thousands of healthy children globally to establish the "Ideal Median". When a child is born, their weight should naturally fall within the middle of the bell curve.
+            </p>
+            
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 24 }}>
+              <div style={{ padding: "10px 16px", background: "#ECFDF5", borderLeft: "4px solid #10B981", borderRadius: 6, fontSize: 13, color: "#065F46" }}>
+                <strong>Normal Zone (+2 to -2 SD):</strong> ~95% of healthy global population falls here.
+              </div>
+              <div style={{ padding: "10px 16px", background: "#FFFBEB", borderLeft: "4px solid #F59E0B", borderRadius: 6, fontSize: 13, color: "#92400E" }}>
+                <strong>MAM Alert (-2 to -3 SD):</strong> The bottom 2.3% of the population. Moderate Malnutrition.
+              </div>
+              <div style={{ padding: "10px 16px", background: "#FFF1F2", borderLeft: "4px solid #E11D48", borderRadius: 6, fontSize: 13, color: "#9F1239" }}>
+                <strong>SAM Crisis (&lt; -3 SD):</strong> The bottom 0.1% of the population. Severe Malnutrition.
+              </div>
+            </div>
+          </div>
+          <div>
+            {/* Visual Example of a MAM child */}
+            <ZScoreCurve zScore={-2.5} type="Example: Child with -2.5 Z-Score" />
+          </div>
+        </div>
+      </div>
+
+      {/* ── SECTION 3: PROTOCOL EXPLANATIONS ── */}
+      <h3 style={{ fontSize: 18, color: "#0D1B2A", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+        <Zap size={20} color="#00509E" /> Clinical Classifications & Action Plans
+      </h3>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16, marginBottom: 32 }}>
+        <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderTop: "4px solid #E11D48", borderRadius: 12, padding: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
+          <h4 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", marginBottom: 8 }}>SAM</h4>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#E11D48", marginBottom: 16 }}>Severe Acute Malnutrition</div>
+          <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.6, marginBottom: 16 }}>
+            Defined by a Weight-for-Height (WAZ) Z-Score below -3 SD. This indicates a highly vulnerable child suffering from severe muscle wasting.
+          </p>
+          <div style={{ padding: "10px", background: "#F8FAFC", borderRadius: 8, fontSize: 12, color: "#334155" }}>
+            <strong>Action:</strong> Immediate referral to Nutritional Rehabilitation Centre (NRC) & start RUTF diet.
+          </div>
+        </div>
+        
+        <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderTop: "4px solid #F59E0B", borderRadius: 12, padding: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
+          <h4 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", marginBottom: 8 }}>MAM</h4>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#F59E0B", marginBottom: 16 }}>Moderate Acute Malnutrition</div>
+          <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.6, marginBottom: 16 }}>
+            Defined by a Z-Score between -3 SD and -2 SD. The child is at high risk of deteriorating into SAM without immediate intervention.
+          </p>
+          <div style={{ padding: "10px", background: "#F8FAFC", borderRadius: 8, fontSize: 12, color: "#334155" }}>
+            <strong>Action:</strong> Enroll in Supplementary Nutrition Programme (SNP) & increase caloric intake.
+          </div>
+        </div>
+
+        <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderTop: "4px solid #0F172A", borderRadius: 12, padding: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
+          <h4 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", marginBottom: 8 }}>GAM</h4>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#0F172A", marginBottom: 16 }}>Global Acute Malnutrition</div>
+          <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.6, marginBottom: 16 }}>
+            GAM is the combined total rate of SAM + MAM in a population. It is used by the UN and WHO to classify regional food emergencies.
+          </p>
+          <div style={{ padding: "10px", background: "#F8FAFC", borderRadius: 8, fontSize: 12, color: "#334155" }}>
+            <strong>Threshold:</strong> A GAM rate over 15% indicates a critical public health emergency.
+          </div>
         </div>
       </div>
 
