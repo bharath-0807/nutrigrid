@@ -15,6 +15,56 @@ import ClinicalDocs from "./components/ClinicalDocs";
 import { subscribeToAuthChanges, logoutUser } from "./services/authService";
 import { subscribeToChildren, seedInitialData } from "./services/childrenService";
 
+// ── Sync Button with visible feedback ──────────────────────
+function SyncButton() {
+  const [status, setStatus] = useState("idle"); // idle | loading | success | error
+  const [errMsg, setErrMsg] = useState("");
+
+  const handleSync = async () => {
+    setStatus("loading");
+    setErrMsg("");
+    try {
+      await seedInitialData();
+      setStatus("success");
+      setTimeout(() => setStatus("idle"), 3000);
+    } catch (err) {
+      console.error("Sync failed:", err);
+      setErrMsg(err.message || "Unknown error");
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 8000);
+    }
+  };
+
+  const label = status === "loading" ? "Syncing..." 
+    : status === "success" ? "Synced!" 
+    : status === "error" ? "Failed" 
+    : "Sync Demo Data";
+
+  const btnStyle = status === "success" 
+    ? { marginBottom: 10, color: "#059669", borderColor: "#A7F3D0", background: "#ECFDF5" }
+    : status === "error"
+    ? { marginBottom: 10, color: "#E11D48", borderColor: "#FECDD3", background: "#FFF1F2" }
+    : { marginBottom: 10, color: "#007B83", borderColor: "#80CCCE", background: "#E0F5F5" };
+
+  return (
+    <>
+      <button
+        className="sidebar-logout-btn"
+        onClick={handleSync}
+        disabled={status === "loading"}
+        style={btnStyle}
+      >
+        <Download size={13} /> {label}
+      </button>
+      {status === "error" && errMsg && (
+        <div style={{ fontSize: 10, color: "#E11D48", padding: "4px 8px", marginBottom: 6, lineHeight: 1.4 }}>
+          {errMsg}
+        </div>
+      )}
+    </>
+  );
+}
+
 // ── Main App ───────────────────────────────────────────────
 export default function App() {
   const [page, setPage] = useState("landing");
@@ -142,22 +192,7 @@ export default function App() {
             <div className="user-avatar">{roleIcon}</div>
             <div><strong>{user?.role ?? "Worker"}</strong><span>{user?.block ?? "Coimbatore"}</span></div>
           </div>
-          <button 
-            className="sidebar-logout-btn" 
-            onClick={async () => {
-              if (window.confirm("This will populate 8 diverse demo cases for the judges. Proceed?")) {
-                try {
-                  await seedInitialData();
-                  alert("Demo suite populated successfully!");
-                } catch (err) {
-                  alert("Failed to sync. Please check your Firebase Firestore rules. Error: " + err.message);
-                }
-              }
-            }}
-            style={{ marginBottom: 10, color: "#007B83", borderColor: "#80CCCE", background: "#E0F5F5" }}
-          >
-            <Download size={13} /> Sync Demo Data
-          </button>
+          <SyncButton />
           <button className="sidebar-logout-btn" onClick={handleLogout}>
             <LogOut size={13} /> Sign Out
           </button>
