@@ -59,7 +59,7 @@ export default function Analytics({ children, grades, stats }) {
       </div>
       <div className="card">
         <div className="card-header"><div><div className="card-title">Block-wise SAM/MAM</div></div></div>
-        <div className="card-body">
+        <div className="card-body"> 
           <ResponsiveContainer width="100%" height={150}>
             <BarChart data={vData} margin={{ left: -15, right: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={CS.grid} /><XAxis dataKey="name" tick={CS.axis} /><YAxis tick={CS.axis} allowDecimals={false} /><Tooltip {...CS.tooltip} /><Legend wrapperStyle={{ fontSize: 11, fontFamily: "IBM Plex Sans" }} />

@@ -5,6 +5,7 @@ import { lmsZScore, classifyChild, getGrowthVelocity, buildChartData, getOptimal
 import { generateChildPDF } from "../utils/pdfGenerator";
 import { GRADE_CFG, CLINICAL_RECS, CHART_STYLES as CS } from "../data/clinicalConfig";
 import DietForecast from "./DietForecast";
+import ZScoreCurve from "./ZScoreCurve";
 
 export default function Detail({ child, grades, setScreen }) {
   const [mainTab, setMainTab] = useState("growth");
@@ -138,13 +139,18 @@ export default function Detail({ child, grades, setScreen }) {
             </div>
           </div>
 
-          <div className="ai-box">
-            <div className="ai-box-title"><ClipboardList size={12} /> Clinical Protocol — {g} ({cfg.full})</div>
-            <ul>{CLINICAL_RECS[g]?.map((r, i) => <li key={i}>{r}</li>)}</ul>
-            <div style={{ marginTop: 12, fontSize: 11, color: "#7A92A8", borderTop: "1px solid #C2DCF5", paddingTop: 10, fontFamily: "IBM Plex Mono" }}>
-              WHO LMS Box-Cox · WAZ:{waz.toFixed(3)} HAZ:{haz.toFixed(3)} · {cfg.full} · WHO Child Growth Standards 2006
-            </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 14 }}>
+            <ZScoreCurve zScore={waz} type="Weight Distribution (WAZ)" />
+            <ZScoreCurve zScore={haz} type="Height Distribution (HAZ)" />
           </div>
+
+          <div className="ai-box">
+             <div className="ai-box-title"><ClipboardList size={12} /> Clinical Protocol — {g} ({cfg.full})</div>
+             <ul>{CLINICAL_RECS[g]?.map((r, i) => <li key={i}>{r}</li>)}</ul>
+             <div style={{ marginTop: 12, fontSize: 11, color: "#7A92A8", borderTop: "1px solid #C2DCF5", paddingTop: 10, fontFamily: "IBM Plex Mono" }}>
+               WHO LMS Box-Cox · WAZ:{waz.toFixed(3)} HAZ:{haz.toFixed(3)} · {cfg.full} · WHO Child Growth Standards 2006
+             </div>
+           </div>
         </>
       )}
 

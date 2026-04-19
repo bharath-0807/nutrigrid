@@ -16,7 +16,7 @@ function classifyMUAC(muac) {
 }
 
 // ── Voice Recognition Hook (Web Speech API — 100% free) ──
-function useVoiceInput(onResult) {
+function useVoiceInput(onResult, lang) {
   const [listening, setListening] = useState(false);
   const recognitionRef = useRef(null);
 
@@ -30,7 +30,7 @@ function useVoiceInput(onResult) {
     const recognition = new SpeechRecognition();
     recognition.continuous = false;
     recognition.interimResults = false;
-    recognition.lang = "en-IN"; // Indian English
+    recognition.lang = lang; 
     recognition.maxAlternatives = 1;
 
     recognition.onresult = (event) => {
@@ -59,25 +59,26 @@ function useVoiceInput(onResult) {
 
 // ── Parse spoken numbers from voice transcript ──
 function parseSpokenNumber(text) {
-  // Handle "point" → "."  e.g. "four point five" → "4.5"
+  // Common number mappings for multiple languages
   const wordToNum = {
+    // English
     zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5,
     six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
-    eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15,
-    sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20,
-    thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90,
-    hundred: 100,
+    hundred: 100, point: ".",
+    // Tamil
+    பூஜ்யம்: 0, ஒன்று: 1, இரண்டு: 2, மூன்று: 3, நான்கு: 4, ஐந்து: 5,
+    ஆறு: 6, ஏழு: 7, எட்டு: 8, ஒன்பது: 9, பத்து: 10, புள்ளி: ".",
+    // Hindi
+    शून्य: 0, एक: 1, दो: 2, तीन: 3, चार: 4, पाँच: 5,
+    छह: 6, सात: 7, आठ: 8, नौ: 9, दस: 10, दशमलव: ".",
   };
 
   let cleaned = text.trim();
 
   // Replace word numbers with digits
   Object.entries(wordToNum).forEach(([word, num]) => {
-    cleaned = cleaned.replace(new RegExp(`\\b${word}\\b`, "gi"), num.toString());
+    cleaned = cleaned.replace(new RegExp(`\\b${word}\\b|${word}`, "gi"), num.toString());
   });
-
-  // "point" → "."
-  cleaned = cleaned.replace(/\bpoint\b/gi, ".");
 
   // Extract all numbers (including decimals)
   const numbers = cleaned.match(/\d+\.?\d*/g);
@@ -92,6 +93,16 @@ export default function AddRecord() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState("");
+  const [voiceLang, setVoiceLang] = useState("en-IN");
+
+  const VOICE_LANGS = [
+    { code: "en-IN", label: "English (India)" },
+    { code: "ta-IN", label: "Tamil (தமிழ்)" },
+    { code: "hi-IN", label: "Hindi (हिन्दी)" },
+    { code: "kn-IN", label: "Kannada (ಕನ್ನಡ)" },
+    { code: "ml-IN", label: "Malayalam (മലയാളம்)" },
+    { code: "te-IN", label: "Telugu (తెలుగు)" },
+  ];
 
   const update = useCallback((k, v) => setForm((p) => ({ ...p, [k]: v })), []);
 
@@ -128,7 +139,7 @@ export default function AddRecord() {
     setTimeout(() => setVoiceStatus(""), 5000);
   }, [update]);
 
-  const { listening, startListening, stopListening } = useVoiceInput(handleVoiceResult);
+  const { listening, startListening, stopListening } = useVoiceInput(handleVoiceResult, voiceLang);
 
   const muacResult = classifyMUAC(form.muac);
 
@@ -248,12 +259,22 @@ export default function AddRecord() {
               {listening ? <MicOff size={20} color="#fff" /> : <Mic size={20} color="#fff" />}
             </button>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: listening ? "#2563EB" : "#0D1B2A", fontFamily: "var(--font-heading)" }}>
-                {listening ? "🔴 Listening... Speak now" : "🎤 AI Voice Input"}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: listening ? "#2563EB" : "#0D1B2A", fontFamily: "var(--font-heading)" }}>
+                  {listening ? "🔴 Listening... Speak now" : "🎤 AI Voice Input"}
+                </div>
+                <select 
+                  value={voiceLang} 
+                  onChange={(e) => setVoiceLang(e.target.value)} 
+                  disabled={listening}
+                  style={{ fontSize: 10, padding: "2px 6px", borderRadius: 4, border: "1px solid #cbd5e1", background: "#fff", cursor: "pointer" }}
+                >
+                  {VOICE_LANGS.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+                </select>
               </div>
               <div style={{ fontSize: 11.5, color: "#7A92A8", marginTop: 2 }}>
                 {voiceStatus || (listening
-                  ? 'Say: "Weight 5.5" or "Height 72" or "Age 24"'
+                  ? 'Speak: "Weight 5.5" or measurements in your language'
                   : "Tap microphone to speak measurements instead of typing")}
               </div>
             </div>
