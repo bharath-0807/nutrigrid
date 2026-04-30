@@ -91,66 +91,62 @@ export const CHART_STYLES = {
   },
 };
 
-// Initial demo children for judges' review
+// Initial demo children for judges' review (Focused on 2.5 to 5 years age group)
 export const INIT_CHILDREN = [
   {
-    id: "1", name: "Aarav Kumar", age: 24, gender: "boys", village: "Block A",
+    id: "1", name: "Aarav Kumar", age: 30, gender: "boys", village: "Block A",
     records: [
-      { month: 0, weight: 3.2, height: 49.5 },
-      { month: 12, weight: 8.5, height: 72.0 },
-      { month: 24, weight: 10.9, height: 83.0 },
+      { month: 24, weight: 11.5, height: 86.0 },
+      { month: 30, weight: 12.5, height: 90.0 }, // Normal
     ],
   },
   {
     id: "2", name: "Priya Selvi", age: 36, gender: "girls", village: "Block B",
     records: [
-      { month: 0, weight: 2.8, height: 47.5 },
-      { month: 24, weight: 9.0, height: 81.0 },
-      { month: 36, weight: 11.2, height: 91.5 },
+      { month: 30, weight: 10.0, height: 88.0 },
+      { month: 36, weight: 10.5, height: 92.0 }, // MAM Case
     ],
   },
   {
-    id: "3", name: "Rajan Murugan", age: 12, gender: "boys", village: "Block A",
+    id: "3", name: "Rajan Murugan", age: 48, gender: "boys", village: "Block A",
     records: [
-      { month: 0, weight: 3.4, height: 50.0 },
-      { month: 6, weight: 6.2, height: 65.0 },
-      { month: 12, weight: 7.4, height: 72.0 }, // SAM Case (Weight < 8.6kg at 12m)
+      { month: 36, weight: 12.0, height: 92.0 },
+      { month: 48, weight: 11.0, height: 95.0 }, // SAM Case
     ],
   },
   {
-    id: "4", name: "Meena Devi", age: 48, gender: "girls", village: "Block C",
+    id: "4", name: "Meena Devi", age: 60, gender: "girls", village: "Block C",
     records: [
-      { month: 0, weight: 3.1, height: 49.0 },
-      { month: 24, weight: 11.8, height: 85.0 },
-      { month: 48, weight: 16.1, height: 102.5 },
+      { month: 48, weight: 15.0, height: 102.0 },
+      { month: 60, weight: 17.5, height: 108.0 }, // Normal
     ],
   },
   {
-    id: "5", name: "Arun J.", age: 8, gender: "boys", village: "Block B",
+    id: "5", name: "Arun J.", age: 42, gender: "boys", village: "Block B",
     records: [
-      { month: 0, weight: 3.3, height: 50.5 },
-      { month: 8, weight: 7.1, height: 68.0 }, // MAM Case (Weight < 7.5kg at 8m)
+      { month: 36, weight: 12.5, height: 93.0 },
+      { month: 42, weight: 12.0, height: 95.0 }, // MAM Case
     ],
   },
   {
-    id: "6", name: "Kavitha R.", age: 14, gender: "girls", village: "Block A",
+    id: "6", name: "Kavitha R.", age: 54, gender: "girls", village: "Block A",
     records: [
-      { month: 0, weight: 3.0, height: 49.0 },
-      { month: 14, weight: 8.8, height: 75.0 }, // MAM Case
+      { month: 48, weight: 13.0, height: 98.0 },
+      { month: 54, weight: 11.5, height: 97.0 }, // SAM Case
     ],
   },
   {
-    id: "7", name: "Vikram S.", age: 3, gender: "boys", village: "Block C",
+    id: "7", name: "Vikram S.", age: 32, gender: "boys", village: "Block C",
     records: [
-      { month: 0, weight: 3.5, height: 51.0 },
-      { month: 3, weight: 5.2, height: 60.0 }, // SAM Height growth delay
+      { month: 24, weight: 11.8, height: 87.0 },
+      { month: 32, weight: 14.0, height: 94.0 }, // Normal
     ],
   },
   {
-    id: "8", name: "Lakshmi M.", age: 5, gender: "girls", village: "Block A",
+    id: "8", name: "Lakshmi M.", age: 38, gender: "girls", village: "Block A",
     records: [
-      { month: 0, weight: 3.1, height: 49.2 },
-      { month: 5, weight: 5.8, height: 62.1 }, // Borderline MAM
+      { month: 30, weight: 10.5, height: 89.0 },
+      { month: 38, weight: 11.0, height: 94.0 }, // MAM Case
     ],
   },
 ];
