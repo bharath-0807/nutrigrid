@@ -68,7 +68,7 @@ export const NAV = [
   { id: "children",  label: "Children",   Icon: Users },
   { id: "add",       label: "Add Record", Icon: PlusCircle },
   { id: "analytics", label: "Analytics",  Icon: BarChart2 },
-  { id: "docs",      label: "Medical & WHO Limits", Icon: BookOpen },
+  { id: "docs",      label: "WHO Limits", Icon: BookOpen },
 ];
 
 // Recharts shared styling
