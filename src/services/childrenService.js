@@ -2,9 +2,9 @@ import {
   collection, 
   doc, 
   setDoc, 
+  getDocs,
   onSnapshot, 
   query, 
-  orderBy,
   serverTimestamp,
   where
 } from "firebase/firestore";
@@ -17,50 +17,34 @@ const childrenCollectionRef = collection(db, "children");
 export const subscribeToChildren = (user, callback) => {
   if (!user) return () => {};
 
-  let q;
-  if (user.role === "CDPO") {
-    // CDPO (Chief) sees ALL children across all Anganwadis
-    q = query(childrenCollectionRef);
-  } else {
-    // Anganwadi Worker sees ONLY their specific center's children
-    const awId = user.anganwadi_id || "AW-COIM-101";
-    q = query(childrenCollectionRef, where("anganwadi_id", "==", awId));
-  }
+  // Use a simple unfiltered query to avoid Firestore composite index requirements.
+  // We filter client-side based on the user's role and anganwadi_id.
+  const q = query(childrenCollectionRef);
   
   return onSnapshot(q, (snapshot) => {
-    const childrenList = [];
+    const allChildren = [];
     snapshot.forEach((docSnap) => {
       const data = docSnap.data();
-      // Only include docs that have valid records
       if (data.records && data.records.length > 0) {
-        childrenList.push({ id: docSnap.id, ...data });
+        allChildren.push({ id: docSnap.id, ...data });
       }
     });
-    
-    // Sort by name client-side to avoid needing a composite Firestore index
-    childrenList.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-    callback(childrenList);
-  }, (error) => {
-    console.error("Error subscribing to children:", error.message);
-    // If index error, fall back to unfiltered query
-    if (error.message.includes("index")) {
-      console.warn("Firestore index missing. Falling back to local filter.");
-      const fallbackQ = query(childrenCollectionRef);
-      return onSnapshot(fallbackQ, (snapshot) => {
-        const list = [];
-        const awId = user.anganwadi_id || "AW-COIM-101";
-        snapshot.forEach((docSnap) => {
-          const data = docSnap.data();
-          if (data.records && data.records.length > 0) {
-            if (user.role === "CDPO" || data.anganwadi_id === awId) {
-              list.push({ id: docSnap.id, ...data });
-            }
-          }
-        });
-        list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-        callback(list);
-      });
+
+    let filtered;
+    if (user.role === "CDPO") {
+      // CDPO sees ALL children across all Anganwadis
+      filtered = allChildren;
+    } else {
+      // Worker sees ONLY their center's children
+      const awId = user.anganwadi_id || "AW-COIM-101";
+      filtered = allChildren.filter(c => c.anganwadi_id === awId);
     }
+    
+    // Sort alphabetically by name
+    filtered.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    callback(filtered);
+  }, (error) => {
+    console.error("Firestore subscription error:", error.message);
     callback([]);
   });
 };
@@ -75,22 +59,29 @@ export const saveChildToFirebase = async (child) => {
       ...child,
       createdAt: serverTimestamp()
     }, { merge: true });
-    console.log("Child saved to Firebase:", child.name || docId);
+    console.log("Child saved:", child.name || docId);
   } catch (error) {
-    console.error("Error saving child to Firebase:", error.message);
+    console.error("Error saving child:", error.message);
     throw error;
   }
 };
 
-// Seed all demo children into Firestore
+// Seed all demo children into Firestore (checks if already seeded)
 export const seedInitialData = async () => {
   try {
-    console.log("Seeding initial data (" + INIT_CHILDREN.length + " children)...");
+    // Check if data already exists
+    const snapshot = await getDocs(childrenCollectionRef);
+    if (snapshot.size >= INIT_CHILDREN.length) {
+      console.log("Database already seeded (" + snapshot.size + " records). Skipping.");
+      return;
+    }
+    
+    console.log("Seeding " + INIT_CHILDREN.length + " children...");
     const promises = INIT_CHILDREN.map(child => saveChildToFirebase(child));
     await Promise.all(promises);
-    console.log("Successfully seeded " + INIT_CHILDREN.length + " children");
+    console.log("Seed complete.");
   } catch (e) {
-    console.error("Error seeding initial data:", e);
+    console.error("Seed error:", e);
     throw e;
   }
 };
