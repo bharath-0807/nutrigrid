@@ -36,15 +36,19 @@ export const loginUser = async (email, password) => {
   const userDocRef = doc(db, "users", fbUser.uid);
   const userDoc = await getDoc(userDocRef);
 
+  const isChief = fbUser.email.toLowerCase().includes("chief");
+  const defaultUserData = {
+    uid: fbUser.uid,
+    email: fbUser.email,
+    role: isChief ? "CDPO" : "Anganwadi Worker",
+    name: isChief ? "Chief Officer" : fbUser.email.split("@")[0],
+    block: "Coimbatore",
+    anganwadi_id: isChief ? "ALL" : "AW-COIM-101"
+  };
+
   const userData = userDoc.exists()
-    ? { ...userDoc.data(), uid: fbUser.uid }
-    : {
-        uid: fbUser.uid,
-        email: fbUser.email,
-        role: "Anganwadi Worker",
-        name: fbUser.email.split("@")[0],
-        block: "Coimbatore",
-      };
+    ? { ...defaultUserData, ...userDoc.data(), uid: fbUser.uid }
+    : defaultUserData;
 
   saveSession(userData);
   return userData;

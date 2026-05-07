@@ -65,7 +65,7 @@ export const CLINICAL_RECS = {
 // Sidebar navigation items
 export const NAV = [
   { id: "dashboard", label: "Dashboard",  Icon: LayoutDashboard },
-  { id: "children",  label: "Children",   Icon: Users },
+  { id: "children",  label: "Register",   Icon: Users },
   { id: "add",       label: "Add Record", Icon: PlusCircle },
   { id: "analytics", label: "Analytics",  Icon: BarChart2 },
   { id: "docs",      label: "WHO Limits", Icon: BookOpen },
@@ -91,62 +91,70 @@ export const CHART_STYLES = {
   },
 };
 
-// Initial demo children for judges' review (Focused on 2.5 to 5 years age group)
+// Enterprise Demo Data for Judges' Review (RBAC, Audit, Medical)
 export const INIT_CHILDREN = [
   {
-    id: "1", name: "Aarav Kumar", age: 30, gender: "boys", village: "Block A",
+    id: "1", nutrigridId: "NG-2026-001", name: "Aarav Kumar", age: 30, gender: "boys", village: "Block A", anganwadi_id: "AW-COIM-101",
+    medicalConditions: ["None"], vaccinationStatus: "Fully Vaccinated",
     records: [
-      { month: 24, weight: 11.5, height: 86.0 },
-      { month: 30, weight: 12.5, height: 90.0 }, // Normal
+      { month: 24, weight: 11.5, height: 86.0, enteredBy: "Worker 1", updatedAt: new Date("2025-10-15").toISOString() },
+      { month: 30, weight: 12.5, height: 90.0, enteredBy: "Worker 1", updatedAt: new Date("2026-04-15").toISOString() }, // Normal
     ],
   },
   {
-    id: "2", name: "Priya Selvi", age: 36, gender: "girls", village: "Block B",
+    id: "2", nutrigridId: "NG-2026-002", name: "Priya Selvi", age: 36, gender: "girls", village: "Block B", anganwadi_id: "AW-COIM-101",
+    medicalConditions: ["Peanut Allergy"], vaccinationStatus: "Pending Polio",
     records: [
-      { month: 30, weight: 10.0, height: 88.0 },
-      { month: 36, weight: 10.5, height: 92.0 }, // MAM Case
+      { month: 30, weight: 10.0, height: 88.0, enteredBy: "Worker 1", updatedAt: new Date("2025-10-20").toISOString() },
+      { month: 36, weight: 10.5, height: 92.0, enteredBy: "Worker 1", updatedAt: new Date("2026-04-20").toISOString() }, // MAM Case
     ],
   },
   {
-    id: "3", name: "Rajan Murugan", age: 48, gender: "boys", village: "Block A",
+    id: "3", nutrigridId: "NG-2026-003", name: "Rajan Murugan", age: 48, gender: "boys", village: "Block A", anganwadi_id: "AW-COIM-101",
+    medicalConditions: ["Type 1 Diabetes"], vaccinationStatus: "Fully Vaccinated",
     records: [
-      { month: 36, weight: 12.0, height: 92.0 },
-      { month: 48, weight: 11.0, height: 95.0 }, // SAM Case
+      { month: 36, weight: 12.0, height: 92.0, enteredBy: "Worker 1", updatedAt: new Date("2025-04-10").toISOString() },
+      { month: 48, weight: 11.0, height: 95.0, enteredBy: "Worker 1", updatedAt: new Date("2026-04-10").toISOString() }, // SAM Case
     ],
   },
   {
-    id: "4", name: "Meena Devi", age: 60, gender: "girls", village: "Block C",
+    id: "4", nutrigridId: "NG-2026-004", name: "Kiran Dev", age: 60, gender: "transgender", sexAtBirth: "boys", village: "Block C", anganwadi_id: "AW-COIM-101",
+    medicalConditions: ["None"], vaccinationStatus: "Fully Vaccinated",
     records: [
-      { month: 48, weight: 15.0, height: 102.0 },
-      { month: 60, weight: 17.5, height: 108.0 }, // Normal
+      { month: 48, weight: 15.0, height: 102.0, enteredBy: "Worker 1", updatedAt: new Date("2025-04-05").toISOString() },
+      { month: 60, weight: 17.5, height: 108.0, enteredBy: "Worker 1", updatedAt: new Date("2026-04-05").toISOString() }, // Normal, Transgender rep
     ],
   },
   {
-    id: "5", name: "Arun J.", age: 42, gender: "boys", village: "Block B",
+    id: "5", nutrigridId: "NG-2026-005", name: "Arun J.", age: 42, gender: "boys", village: "Block B", anganwadi_id: "AW-COIM-102",
+    medicalConditions: ["Asthma"], vaccinationStatus: "Fully Vaccinated",
     records: [
-      { month: 36, weight: 12.5, height: 93.0 },
-      { month: 42, weight: 12.0, height: 95.0 }, // MAM Case
+      { month: 36, weight: 12.5, height: 93.0, enteredBy: "Worker 2", updatedAt: new Date("2025-10-12").toISOString() },
+      { month: 42, weight: 12.0, height: 95.0, enteredBy: "Worker 2", updatedAt: new Date("2026-04-12").toISOString() }, // MAM Case (Different Anganwadi)
     ],
   },
   {
-    id: "6", name: "Kavitha R.", age: 54, gender: "girls", village: "Block A",
+    id: "6", nutrigridId: "NG-2026-006", name: "Kavitha R.", age: 54, gender: "girls", village: "Block A", anganwadi_id: "AW-COIM-101",
+    medicalConditions: ["Differently Abled"], vaccinationStatus: "Fully Vaccinated",
     records: [
-      { month: 48, weight: 13.0, height: 98.0 },
-      { month: 54, weight: 11.5, height: 97.0 }, // SAM Case
+      { month: 48, weight: 13.0, height: 98.0, enteredBy: "Worker 1", updatedAt: new Date("2025-10-01").toISOString() },
+      { month: 54, weight: 11.5, height: 97.0, enteredBy: "Worker 1", updatedAt: new Date("2026-04-01").toISOString() }, // SAM Case
     ],
   },
   {
-    id: "7", name: "Vikram S.", age: 32, gender: "boys", village: "Block C",
+    id: "7", nutrigridId: "NG-2026-007", name: "Vikram S.", age: 32, gender: "boys", village: "Block C", anganwadi_id: "AW-COIM-102",
+    medicalConditions: ["None"], vaccinationStatus: "Pending Measles",
     records: [
-      { month: 24, weight: 11.8, height: 87.0 },
-      { month: 32, weight: 14.0, height: 94.0 }, // Normal
+      { month: 24, weight: 11.8, height: 87.0, enteredBy: "Worker 2", updatedAt: new Date("2025-08-11").toISOString() },
+      { month: 32, weight: 14.0, height: 94.0, enteredBy: "Worker 2", updatedAt: new Date("2026-04-11").toISOString() }, // Normal
     ],
   },
   {
-    id: "8", name: "Lakshmi M.", age: 38, gender: "girls", village: "Block A",
+    id: "8", nutrigridId: "NG-2026-008", name: "Lakshmi M.", age: 38, gender: "girls", village: "Block A", anganwadi_id: "AW-COIM-101",
+    medicalConditions: ["None"], vaccinationStatus: "Fully Vaccinated",
     records: [
-      { month: 30, weight: 10.5, height: 89.0 },
-      { month: 38, weight: 11.0, height: 94.0 }, // MAM Case
+      { month: 30, weight: 10.5, height: 89.0, enteredBy: "Worker 1", updatedAt: new Date("2025-08-08").toISOString() },
+      { month: 38, weight: 11.0, height: 94.0, enteredBy: "Worker 1", updatedAt: new Date("2026-04-08").toISOString() }, // MAM Case
     ],
   },
 ];

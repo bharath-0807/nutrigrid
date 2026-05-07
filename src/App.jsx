@@ -15,56 +15,6 @@ import ClinicalDocs from "./components/ClinicalDocs";
 import { subscribeToAuthChanges, logoutUser } from "./services/authService";
 import { subscribeToChildren, seedInitialData } from "./services/childrenService";
 
-// ── Sync Button with visible feedback ──────────────────────
-function SyncButton() {
-  const [status, setStatus] = useState("idle"); // idle | loading | success | error
-  const [errMsg, setErrMsg] = useState("");
-
-  const handleSync = async () => {
-    setStatus("loading");
-    setErrMsg("");
-    try {
-      await seedInitialData();
-      setStatus("success");
-      setTimeout(() => setStatus("idle"), 3000);
-    } catch (err) {
-      console.error("Sync failed:", err);
-      setErrMsg(err.message || "Unknown error");
-      setStatus("error");
-      setTimeout(() => setStatus("idle"), 8000);
-    }
-  };
-
-  const label = status === "loading" ? "Syncing..." 
-    : status === "success" ? "Synced!" 
-    : status === "error" ? "Failed" 
-    : "Sync Demo Data";
-
-  const btnStyle = status === "success" 
-    ? { marginBottom: 10, color: "#059669", borderColor: "#A7F3D0", background: "#ECFDF5" }
-    : status === "error"
-    ? { marginBottom: 10, color: "#E11D48", borderColor: "#FECDD3", background: "#FFF1F2" }
-    : { marginBottom: 10, color: "#007B83", borderColor: "#80CCCE", background: "#E0F5F5" };
-
-  return (
-    <>
-      <button
-        className="sidebar-logout-btn"
-        onClick={handleSync}
-        disabled={status === "loading"}
-        style={btnStyle}
-      >
-        <Download size={13} /> {label}
-      </button>
-      {status === "error" && errMsg && (
-        <div style={{ fontSize: 10, color: "#E11D48", padding: "4px 8px", marginBottom: 6, lineHeight: 1.4 }}>
-          {errMsg}
-        </div>
-      )}
-    </>
-  );
-}
-
 // ── Main App ───────────────────────────────────────────────
 export default function App() {
   const [page, setPage] = useState("landing");
@@ -88,16 +38,23 @@ export default function App() {
         setPage("app");
       }
     });
+    return () => unsubscribeAuth();
+  }, []);
 
-    const unsubscribeChildren = subscribeToChildren((data) => {
+  useEffect(() => {
+    if (!user) {
+      setChildren([]);
+      return;
+    }
+    
+    // Auto-seed for prototype update
+    seedInitialData().then(() => console.log("Auto-seeded DB with RBAC structure"));
+    
+    const unsubscribeChildren = subscribeToChildren(user, (data) => {
       setChildren(data);
     });
-
-    return () => {
-      unsubscribeAuth();
-      unsubscribeChildren();
-    };
-  }, []);
+    return () => unsubscribeChildren();
+  }, [user]);
 
   // PWA install prompt
   useEffect(() => {
@@ -122,8 +79,9 @@ export default function App() {
     children.forEach((c) => {
       if(c.records && c.records.length > 0) {
         const last = c.records[c.records.length - 1];
-        const waz = lmsZScore(last.weight, last.month, c.gender, "weight");
-        const haz = lmsZScore(last.height, last.month, c.gender, "height");
+        const sexAtBirth = c.sexAtBirth || (c.gender === "transgender" ? "boys" : undefined);
+        const waz = lmsZScore(last.weight, last.month, c.gender, "weight", sexAtBirth);
+        const haz = lmsZScore(last.height, last.month, c.gender, "height", sexAtBirth);
         g[c.id] = classifyChild(waz, haz);
       }
     });
@@ -158,7 +116,7 @@ export default function App() {
   // ── Page metadata ──
   const meta = {
     dashboard: { title: "Dashboard", sub: "Coimbatore District · March 2026" },
-    children: { title: "Child Registry", sub: `${children.length} children · WHO LMS graded` },
+    children: { title: "Digital Register", sub: `${children.length} children · WHO LMS graded` },
     add: { title: "Register Child", sub: "New anthropometric measurement" },
     analytics: { title: "Analytics & Reports", sub: "SAM/MAM/GAM indicators" },
     docs: { title: "Clinical & WHO Proofs", sub: "Official medical reference charts" },
@@ -168,7 +126,7 @@ export default function App() {
 
   // Role icon
   const roleIcon = user?.role === "Anganwadi Worker" ? <Stethoscope size={16} />
-    : user?.role === "CDPO Officer" ? <Briefcase size={16} />
+    : user?.role === "CDPO" ? <Briefcase size={16} />
     : user?.role === "District Health Officer" ? <Building2 size={16} /> : <User size={16} />;
 
   return (
@@ -192,7 +150,6 @@ export default function App() {
             <div className="user-avatar">{roleIcon}</div>
             <div><strong>{user?.role ?? "Worker"}</strong><span>{user?.block ?? "Coimbatore"}</span></div>
           </div>
-          <SyncButton />
           <button className="sidebar-logout-btn" onClick={handleLogout}>
             <LogOut size={13} /> Sign Out
           </button>
@@ -220,9 +177,9 @@ export default function App() {
               </div>
             )}
           </div>
-          {screen === "dashboard" && <Dashboard children={children} grades={grades} stats={stats} goDetail={goDetail} />}
+          {screen === "dashboard" && <Dashboard children={children} grades={grades} stats={stats} goDetail={goDetail} user={user} />}
           {screen === "children" && <ChildrenList children={children} grades={grades} goDetail={goDetail} setScreen={setScreen} />}
-          {screen === "add" && <AddRecord />}
+          {screen === "add" && <AddRecord user={user} children={children} setScreen={setScreen} />}
           {screen === "analytics" && <Analytics children={children} grades={grades} stats={stats} />}
           {screen === "docs" && <ClinicalDocs />}
           {screen === "detail" && <Detail child={selected} grades={grades} setScreen={setScreen} />}

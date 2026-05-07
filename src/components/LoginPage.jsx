@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  AlertTriangle, Eye, EyeOff, Lock, User, LogIn, Sprout
+  AlertTriangle, Eye, EyeOff, Lock, User, LogIn, Sprout, Fingerprint, Shield
 } from "lucide-react";
 import { loginUser } from "../services/authService";
 
@@ -10,6 +10,7 @@ export default function LoginPage({ onLogin }) {
   const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [bioStatus, setBioStatus] = useState(""); // "" | "scanning" | "success" | "error"
 
   const handleLogin = async () => {
     setError("");
@@ -21,11 +22,58 @@ export default function LoginPage({ onLogin }) {
     try {
       const email = username.includes('@') ? username : `${username}@nutrigrid.in`;
       const user = await loginUser(email, password);
-      // Immediately transition to dashboard
       onLogin(user);
     } catch (err) {
       setError(err.message || "Invalid credentials. Please try again.");
       setLoading(false);
+    }
+  };
+
+  // WebAuthn Biometric Login (uses phone fingerprint / face unlock)
+  const handleBiometric = async () => {
+    setBioStatus("scanning");
+    setError("");
+    try {
+      if (!window.PublicKeyCredential) {
+        throw new Error("Biometric authentication is not supported on this device/browser.");
+      }
+      // Create a challenge for WebAuthn
+      const challenge = new Uint8Array(32);
+      crypto.getRandomValues(challenge);
+      const credential = await navigator.credentials.create({
+        publicKey: {
+          challenge,
+          rp: { name: "NutriGrid ICDS" },
+          user: {
+            id: new Uint8Array(16),
+            name: "worker@nutrigrid.in",
+            displayName: "Anganwadi Worker",
+          },
+          pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+          authenticatorSelection: {
+            authenticatorAttachment: "platform",
+            userVerification: "required",
+          },
+          timeout: 60000,
+        },
+      });
+      if (credential) {
+        setBioStatus("success");
+        // After biometric success, log in with default worker account
+        setTimeout(async () => {
+          try {
+            const user = await loginUser("worker@nutrigrid.in", "nutrigrid123");
+            onLogin(user);
+          } catch {
+            setError("Biometric verified, but account login failed. Use email/password.");
+            setBioStatus("");
+          }
+        }, 800);
+      }
+    } catch (err) {
+      setBioStatus("error");
+      setError(err.message || "Biometric authentication failed.");
+      setTimeout(() => setBioStatus(""), 3000);
     }
   };
 
@@ -57,7 +105,35 @@ export default function LoginPage({ onLogin }) {
         <div className="login-body">
           <div className="login-title">Sign in to NutriGrid</div>
           <div className="login-sub">
-            Enter your ICDS credentials to access the dashboard
+            Enter your ICDS credentials or use biometric authentication
+          </div>
+
+          {/* Biometric Login Button */}
+          <button
+            onClick={handleBiometric}
+            disabled={bioStatus === "scanning" || bioStatus === "success"}
+            style={{
+              width: "100%", padding: "14px", borderRadius: 12, fontSize: 14, fontWeight: 700,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+              background: bioStatus === "success" ? "#ECFDF5" : bioStatus === "scanning" ? "#EBF3FB" : "linear-gradient(135deg, #0F172A, #1E293B)",
+              color: bioStatus === "success" ? "#059669" : bioStatus === "scanning" ? "#2563EB" : "#fff",
+              border: bioStatus === "success" ? "2px solid #A7F3D0" : bioStatus === "scanning" ? "2px solid #93C5FD" : "2px solid transparent",
+              cursor: (bioStatus === "scanning" || bioStatus === "success") ? "not-allowed" : "pointer",
+              transition: "all 0.3s", marginBottom: 16,
+              fontFamily: "var(--font-heading)",
+              boxShadow: bioStatus === "" ? "0 4px 12px rgba(15,23,42,0.3)" : "none",
+            }}
+          >
+            {bioStatus === "scanning" && <><Fingerprint size={20} style={{ animation: "pulse 1s infinite" }} /> Scanning Biometric...</>}
+            {bioStatus === "success" && <><Shield size={20} /> Biometric Verified</>}
+            {bioStatus === "error" && <><AlertTriangle size={20} /> Retry Biometric</>}
+            {bioStatus === "" && <><Fingerprint size={20} /> Login with Fingerprint / Face ID</>}
+          </button>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+            <div style={{ flex: 1, height: 1, background: "#E2E8F0" }} />
+            <span style={{ fontSize: 11.5, color: "#94A3B8", fontWeight: 600 }}>OR</span>
+            <div style={{ flex: 1, height: 1, background: "#E2E8F0" }} />
           </div>
 
           {/* Username */}
@@ -120,7 +196,7 @@ export default function LoginPage({ onLogin }) {
           </button>
 
           <div className="login-footer-note">
-            🔒 Secure ICDS System · Jansons Institute of Technology
+            <Shield size={12} style={{ marginRight: 4 }} /> Secure ICDS System · Jansons Institute of Technology
           </div>
         </div>
       </div>

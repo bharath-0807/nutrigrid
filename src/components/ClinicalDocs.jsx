@@ -1,6 +1,8 @@
 import { useState, useMemo } from "react";
-import { AlertTriangle, CheckCircle, FileText, Download, ExternalLink, Brain, GitPullRequest, Zap, Target } from "lucide-react";
+import { AlertTriangle, FileText, Download, ExternalLink, Brain, GitPullRequest, Zap, Target } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from "recharts";
 import { getOptimalTarget, getWHOThresholds } from "../utils/lmsCalc";
+import { CHART_STYLES as CS } from "../data/clinicalConfig";
 import ZScoreCurve from "./ZScoreCurve";
 
 const REFERENCE_DOCS = [
@@ -34,15 +36,15 @@ export default function ClinicalDocs() {
   const [metric, setMetric] = useState("weight");
   const [gender, setGender] = useState("boys");
 
-  // Dynamically generate the full 0-60 months WHO cutoff table
-  const tableData = useMemo(() => {
+  // Generate the 0-60 months WHO reference data for charts
+  const chartData = useMemo(() => {
     const rows = [];
-    for (let m = 0; m <= 60; m++) {
+    for (let m = 0; m <= 60; m += 3) {
       rows.push({
         month: m,
-        ideal: getOptimalTarget(m, gender, metric),
-        mam: getWHOThresholds(m, gender, metric, -2),
-        sam: getWHOThresholds(m, gender, metric, -3),
+        Median: parseFloat(getOptimalTarget(m, gender, metric).toFixed(2)),
+        "MAM (−2SD)": parseFloat(getWHOThresholds(m, gender, metric, -2).toFixed(2)),
+        "SAM (−3SD)": parseFloat(getWHOThresholds(m, gender, metric, -3).toFixed(2)),
       });
     }
     return rows;
@@ -50,7 +52,7 @@ export default function ClinicalDocs() {
 
   return (
     <div className="dashboard-content" style={{ paddingBottom: 60 }}>
-      {/* HEADER SECTION */}
+      {/* HEADER */}
       <div className="page-title-bar" style={{ marginBottom: 24, padding: "24px 32px", background: "linear-gradient(135deg, #0F172A, #1E293B)", borderRadius: 16, color: "#fff" }}>
         <div>
           <h1 className="page-title" style={{ display: "flex", alignItems: "center", gap: 10, color: "#fff", borderBottom: "none" }}>
@@ -60,7 +62,7 @@ export default function ClinicalDocs() {
         </div>
       </div>
 
-      {/* ── SECTION 1: PROBLEM VS SOLUTION ── */}
+      {/* SECTION 1: PROBLEM VS SOLUTION */}
       <h3 style={{ fontSize: 18, color: "#0D1B2A", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
         <GitPullRequest size={20} color="#00509E" /> The Invisible Malnutrition Crisis
       </h3>
@@ -96,7 +98,7 @@ export default function ClinicalDocs() {
         </div>
       </div>
 
-      {/* ── SECTION 2: WHAT IS A Z-SCORE? ── */}
+      {/* SECTION 2: WHAT IS A Z-SCORE? */}
       <div className="card" style={{ marginBottom: 32 }}>
         <div className="card-header" style={{ background: "#F8FAFC" }}>
           <div>
@@ -126,13 +128,12 @@ export default function ClinicalDocs() {
             </div>
           </div>
           <div>
-            {/* Visual Example of a MAM child */}
             <ZScoreCurve zScore={-2.5} type="Example: Child with -2.5 Z-Score" />
           </div>
         </div>
       </div>
 
-      {/* ── SECTION 2.5: EXACT Z-SCORE SCALE (REVIEWER REFERENCE) ── */}
+      {/* SECTION 2.5: EXACT Z-SCORE SCALE */}
       <h3 style={{ fontSize: 18, color: "#0D1B2A", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
         <Target size={20} color="#00509E" /> Exact Z-Score Scale (Reviewer Reference)
       </h3>
@@ -140,28 +141,15 @@ export default function ClinicalDocs() {
         <p style={{ fontSize: 13.5, color: "#475569", marginBottom: 20, lineHeight: 1.6 }}>
           Use this exact mapping scale to explain what a specific Z-Score value means according to the <strong>WHO Child Growth Standards</strong>.
         </p>
-        
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 20, padding: "12px 16px", background: "#F8FAFC", borderRadius: 8, border: "1px solid #E2E8F0", alignItems: "center" }}>
-            <div style={{ fontWeight: 800, color: "#1E293B", fontSize: 14, fontFamily: "'IBM Plex Mono', monospace" }}>&gt; +3.0</div>
-            <div style={{ fontSize: 13.5, color: "#334155" }}><strong style={{ color: "#0F172A" }}>Very High (e.g., 3.5):</strong> Clinically flagged as severely overweight or obese. Immediate review needed.</div>
-          </div>
-          
-          <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 20, padding: "12px 16px", background: "#F8FAFC", borderRadius: 8, border: "1px solid #E2E8F0", alignItems: "center" }}>
-            <div style={{ fontWeight: 800, color: "#1E293B", fontSize: 14, fontFamily: "'IBM Plex Mono', monospace" }}>+2.0 to +3.0</div>
-            <div style={{ fontSize: 13.5, color: "#334155" }}><strong style={{ color: "#0F172A" }}>Elevated (e.g., 2.5):</strong> At risk of being overweight. Requires diet correction.</div>
-          </div>
-          
           <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 20, padding: "14px 16px", background: "#ECFDF5", borderRadius: 8, border: "1px solid #A7F3D0", alignItems: "center" }}>
             <div style={{ fontWeight: 800, color: "#065F46", fontSize: 14, fontFamily: "'IBM Plex Mono', monospace" }}>-2.0 to +2.0</div>
             <div style={{ fontSize: 13.5, color: "#065F46" }}><strong style={{ color: "#059669" }}>NORMAL (e.g., Z-score 1.0 or -1.5):</strong> Perfect, healthy condition. The child falls safely within the 95% global median.</div>
           </div>
-          
           <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 20, padding: "14px 16px", background: "#FFFBEB", borderRadius: 8, border: "1px solid #FDE68A", alignItems: "center" }}>
             <div style={{ fontWeight: 800, color: "#92400E", fontSize: 14, fontFamily: "'IBM Plex Mono', monospace" }}>-3.0 to -2.0</div>
             <div style={{ fontSize: 13.5, color: "#92400E" }}><strong style={{ color: "#D97706" }}>MAM (e.g., Z-score -2.5):</strong> Moderate Acute Malnutrition. Requires enrollment in supplementary feeding programs.</div>
           </div>
-          
           <div style={{ display: "grid", gridTemplateColumns: "130px 1fr", gap: 20, padding: "14px 16px", background: "#FFF1F2", borderRadius: 8, border: "1px solid #FECDD3", alignItems: "center" }}>
             <div style={{ fontWeight: 800, color: "#9F1239", fontSize: 14, fontFamily: "'IBM Plex Mono', monospace" }}>&lt; -3.0</div>
             <div style={{ fontSize: 13.5, color: "#9F1239" }}><strong style={{ color: "#E11D48" }}>SAM (e.g., Z-score -3.5):</strong> Severe Acute Malnutrition. Clinical emergency requiring hospitalization at an NRC.</div>
@@ -169,7 +157,7 @@ export default function ClinicalDocs() {
         </div>
       </div>
 
-      {/* ── SECTION 3: PROTOCOL EXPLANATIONS ── */}
+      {/* SECTION 3: PROTOCOL CARDS */}
       <h3 style={{ fontSize: 18, color: "#0D1B2A", marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
         <Zap size={20} color="#00509E" /> Clinical Classifications & Action Plans
       </h3>
@@ -184,7 +172,6 @@ export default function ClinicalDocs() {
             <strong>Action:</strong> Immediate referral to Nutritional Rehabilitation Centre (NRC) & start RUTF diet.
           </div>
         </div>
-        
         <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderTop: "4px solid #F59E0B", borderRadius: 12, padding: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
           <h4 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", marginBottom: 8 }}>MAM</h4>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#F59E0B", marginBottom: 16 }}>Moderate Acute Malnutrition</div>
@@ -195,7 +182,6 @@ export default function ClinicalDocs() {
             <strong>Action:</strong> Enroll in Supplementary Nutrition Programme (SNP) & increase caloric intake.
           </div>
         </div>
-
         <div style={{ background: "#fff", border: "1px solid #E2E8F0", borderTop: "4px solid #0F172A", borderRadius: 12, padding: 20, boxShadow: "0 2px 8px rgba(0,0,0,0.03)" }}>
           <h4 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", marginBottom: 8 }}>GAM</h4>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#0F172A", marginBottom: 16 }}>Global Acute Malnutrition</div>
@@ -208,14 +194,13 @@ export default function ClinicalDocs() {
         </div>
       </div>
 
-      {/* PROOFS / PDF LINKS */}
+      {/* OFFICIAL PROOFS */}
       <h3 style={{ fontSize: 16, color: "#0D1B2A", marginBottom: 12, display: "flex", alignItems: "center", gap: 8 }}>
         <FileText size={18} color="#00509E" /> Official Medical Proofs
       </h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: 16, marginBottom: 32 }}>
         {REFERENCE_DOCS.map((doc, i) => (
-          <a
-            key={i} href={doc.url} target="_blank" rel="noopener noreferrer"
+          <a key={i} href={doc.url} target="_blank" rel="noopener noreferrer"
             style={{
               textDecoration: "none", background: "#fff", border: "1px solid #E8EDF3",
               borderRadius: 10, padding: 16, display: "flex", gap: 14,
@@ -239,74 +224,77 @@ export default function ClinicalDocs() {
         ))}
       </div>
 
-      {/* WHO TABLES SECTION */}
+      {/* WHO REFERENCE CHARTS (REPLACING THE NUMERICAL TABLE) */}
       <div className="card">
         <div className="card-header" style={{ flexWrap: "wrap", gap: 16 }}>
           <div>
-            <div className="card-title">WHO Master Reference Tables (0–60 Months)</div>
-            <div className="card-subtitle">Official LMS Box-Cox derivation limits</div>
+            <div className="card-title">WHO Growth Reference Curves (0–60 Months)</div>
+            <div className="card-subtitle">Dynamic LMS-derived Median, −2SD (MAM), and −3SD (SAM) curves</div>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <div style={{ display: "flex", background: "#f1f5f9", borderRadius: 6, padding: 3 }}>
-              <button
-                onClick={() => setGender("boys")}
-                style={{ padding: "6px 14px", border: "none", borderRadius: 4, fontSize: 12.5, fontWeight: 600, cursor: "pointer", background: gender === "boys" ? "#fff" : "transparent", color: gender === "boys" ? "#0f172a" : "#64748b", boxShadow: gender === "boys" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
-              >Boys</button>
-              <button
-                onClick={() => setGender("girls")}
-                style={{ padding: "6px 14px", border: "none", borderRadius: 4, fontSize: 12.5, fontWeight: 600, cursor: "pointer", background: gender === "girls" ? "#fff" : "transparent", color: gender === "girls" ? "#0f172a" : "#64748b", boxShadow: gender === "girls" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
-              >Girls</button>
+              <button onClick={() => setGender("boys")}
+                style={{ padding: "6px 14px", border: "none", borderRadius: 4, fontSize: 12.5, fontWeight: 600, cursor: "pointer", background: gender === "boys" ? "#fff" : "transparent", color: gender === "boys" ? "#0f172a" : "#64748b", boxShadow: gender === "boys" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}>Boys</button>
+              <button onClick={() => setGender("girls")}
+                style={{ padding: "6px 14px", border: "none", borderRadius: 4, fontSize: 12.5, fontWeight: 600, cursor: "pointer", background: gender === "girls" ? "#fff" : "transparent", color: gender === "girls" ? "#0f172a" : "#64748b", boxShadow: gender === "girls" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}>Girls</button>
             </div>
             <div style={{ display: "flex", background: "#f1f5f9", borderRadius: 6, padding: 3 }}>
-              <button
-                onClick={() => setMetric("weight")}
-                style={{ padding: "6px 14px", border: "none", borderRadius: 4, fontSize: 12.5, fontWeight: 600, cursor: "pointer", background: metric === "weight" ? "#fff" : "transparent", color: metric === "weight" ? "#0f172a" : "#64748b", boxShadow: metric === "weight" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
-              >Weight (WAZ)</button>
-              <button
-                onClick={() => setMetric("height")}
-                style={{ padding: "6px 14px", border: "none", borderRadius: 4, fontSize: 12.5, fontWeight: 600, cursor: "pointer", background: metric === "height" ? "#fff" : "transparent", color: metric === "height" ? "#0f172a" : "#64748b", boxShadow: metric === "height" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}
-              >Height (HAZ)</button>
+              <button onClick={() => setMetric("weight")}
+                style={{ padding: "6px 14px", border: "none", borderRadius: 4, fontSize: 12.5, fontWeight: 600, cursor: "pointer", background: metric === "weight" ? "#fff" : "transparent", color: metric === "weight" ? "#0f172a" : "#64748b", boxShadow: metric === "weight" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}>Weight (WAZ)</button>
+              <button onClick={() => setMetric("height")}
+                style={{ padding: "6px 14px", border: "none", borderRadius: 4, fontSize: 12.5, fontWeight: 600, cursor: "pointer", background: metric === "height" ? "#fff" : "transparent", color: metric === "height" ? "#0f172a" : "#64748b", boxShadow: metric === "height" ? "0 1px 3px rgba(0,0,0,0.1)" : "none" }}>Height (HAZ)</button>
             </div>
           </div>
         </div>
 
-        <div className="card-body" style={{ padding: 0 }}>
-          <div style={{ background: "#f8fafc", padding: "12px 20px", borderBottom: "1px solid #e2e8f0", fontSize: 12, color: "#475569", display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}><CheckCircle size={14} color="#1E8449" /> <strong>Ideal Target:</strong> Healthy Median (50th percentile)</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}><AlertTriangle size={14} color="#CA6F1E" /> <strong>MAM:</strong> Moderate Malnutrition (-2 SD Cutoff)</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}><AlertTriangle size={14} color="#B03A2E" /> <strong>SAM:</strong> Severe Malnutrition (-3 SD Cutoff)</div>
+        <div className="card-body">
+          {/* LEGEND */}
+          <div style={{ background: "#f8fafc", padding: "12px 20px", borderBottom: "1px solid #e2e8f0", fontSize: 12, color: "#475569", display: "flex", alignItems: "center", gap: 16, marginBottom: 16, borderRadius: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 16, height: 3, background: "#1E8449", borderRadius: 2 }} /> <strong>Median (Ideal)</strong></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 16, height: 3, background: "#CA6F1E", borderRadius: 2 }} /> <strong>MAM Cutoff (−2SD)</strong></div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}><div style={{ width: 16, height: 3, background: "#B03A2E", borderRadius: 2 }} /> <strong>SAM Cutoff (−3SD)</strong></div>
           </div>
 
-          <div className="table-wrap" style={{ maxHeight: 600, overflowY: "auto" }}>
-            <table style={{ minWidth: 600 }}>
-              <thead style={{ position: "sticky", top: 0, background: "#fff", zIndex: 10, boxShadow: "0 1px 0 #e2e8f0" }}>
-                <tr>
-                  <th style={{ width: 100 }}>Month</th>
-                  <th style={{ color: "#1E8449", background: "#f0fdf4" }}>Ideal Target (Median)</th>
-                  <th style={{ color: "#CA6F1E", background: "#fffbeb" }}>MAM Alert (-2 SD Cutoff)</th>
-                  <th style={{ color: "#B03A2E", background: "#fef2f2" }}>SAM Crisis (-3 SD Cutoff)</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tableData.map((row) => (
-                  <tr key={row.month} style={{ background: row.month % 12 === 0 ? "#f8fafc" : "#fff" }}>
-                    <td style={{ fontWeight: 700, color: "#0D1B2A", fontFamily: "'IBM Plex Mono', monospace" }}>
-                      Month {row.month}
-                      {row.month % 12 === 0 && row.month > 0 && <span style={{ marginLeft: 6, fontSize: 10, background: "#e2e8f0", padding: "2px 6px", borderRadius: 10, color: "#475569" }}>{row.month / 12} Yrs</span>}
-                    </td>
-                    <td style={{ fontWeight: 700, color: "#1E8449", fontFamily: "'IBM Plex Mono', monospace" }}>
-                      {row.ideal.toFixed(1)} {metric === "weight" ? "kg" : "cm"}
-                    </td>
-                    <td style={{ fontWeight: 600, color: "#CA6F1E", fontFamily: "'IBM Plex Mono', monospace" }}>
-                      {metric === "weight" ? "<" : "<"} {row.mam.toFixed(1)} {metric === "weight" ? "kg" : "cm"}
-                    </td>
-                    <td style={{ fontWeight: 600, color: "#B03A2E", fontFamily: "'IBM Plex Mono', monospace" }}>
-                      {metric === "weight" ? "<" : "<"} {row.sam.toFixed(1)} {metric === "weight" ? "kg" : "cm"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* CHART */}
+          <ResponsiveContainer width="100%" height={360}>
+            <LineChart data={chartData} margin={{ left: 0, right: 20, top: 10, bottom: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={CS.grid} />
+              <XAxis
+                dataKey="month"
+                tick={CS.axis}
+                label={{ value: "Age (Months)", position: "insideBottom", offset: -5, style: { fontSize: 12, fontWeight: 600, fill: "#7A92A8" } }}
+              />
+              <YAxis
+                tick={CS.axis}
+                label={{ value: metric === "weight" ? "Weight (kg)" : "Height (cm)", angle: -90, position: "insideLeft", offset: 10, style: { fontSize: 12, fontWeight: 600, fill: "#7A92A8" } }}
+              />
+              <Tooltip
+                contentStyle={{ borderRadius: 10, border: "1px solid #E2E8F0", fontSize: 12.5, fontFamily: "IBM Plex Sans" }}
+                formatter={(value, name) => [`${value} ${metric === "weight" ? "kg" : "cm"}`, name]}
+                labelFormatter={(label) => `Month ${label}`}
+              />
+              <Legend wrapperStyle={{ fontSize: 12, fontFamily: "IBM Plex Sans", paddingTop: 12 }} />
+              <Line type="monotone" dataKey="Median" stroke="#1E8449" strokeWidth={2.5} dot={false} />
+              <Line type="monotone" dataKey="MAM (−2SD)" stroke="#CA6F1E" strokeWidth={2} strokeDasharray="6 3" dot={false} />
+              <Line type="monotone" dataKey="SAM (−3SD)" stroke="#B03A2E" strokeWidth={2} strokeDasharray="4 3" dot={false} />
+              <ReferenceLine x={30} stroke="#94A3B8" strokeDasharray="3 3" label={{ value: "2.5 yrs", position: "top", style: { fontSize: 10, fill: "#94A3B8" } }} />
+              <ReferenceLine x={60} stroke="#94A3B8" strokeDasharray="3 3" label={{ value: "5 yrs", position: "top", style: { fontSize: 10, fill: "#94A3B8" } }} />
+            </LineChart>
+          </ResponsiveContainer>
+
+          {/* Key data points below chart */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginTop: 16 }}>
+            {[12, 24, 36, 48].map(m => (
+              <div key={m} style={{ background: "#F8FAFC", padding: "10px 12px", borderRadius: 8, border: "1px solid #E2E8F0", textAlign: "center" }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: "#7A92A8", marginBottom: 4 }}>{m} MONTHS ({m/12} Yr)</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#1E8449", fontFamily: "IBM Plex Mono" }}>
+                  {getOptimalTarget(m, gender, metric).toFixed(1)} {metric === "weight" ? "kg" : "cm"}
+                </div>
+                <div style={{ fontSize: 10.5, color: "#CA6F1E", fontFamily: "IBM Plex Mono", marginTop: 2 }}>
+                  MAM: &lt;{getWHOThresholds(m, gender, metric, -2).toFixed(1)}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

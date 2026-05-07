@@ -5,16 +5,27 @@ import {
   onSnapshot, 
   query, 
   orderBy,
-  serverTimestamp 
+  serverTimestamp,
+  where
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { INIT_CHILDREN } from "../data/clinicalConfig";
 
 const childrenCollectionRef = collection(db, "children");
 
-// Subscribe to real-time children updates
-export const subscribeToChildren = (callback) => {
-  const q = query(childrenCollectionRef, orderBy("createdAt", "desc"));
+// Subscribe to real-time children updates with Role-Based Access Control
+export const subscribeToChildren = (user, callback) => {
+  if (!user) return () => {};
+
+  let q;
+  if (user.role === "CDPO") {
+    // CDPO (Chief) sees all children in the block
+    q = query(childrenCollectionRef, orderBy("createdAt", "desc"));
+  } else {
+    // Anganwadi Worker sees only their specific center
+    const awId = user.anganwadi_id || "AW-COIM-101"; // Fallback to demo ID
+    q = query(childrenCollectionRef, where("anganwadi_id", "==", awId), orderBy("createdAt", "desc"));
+  }
   
   return onSnapshot(q, (snapshot) => {
     const childrenList = [];
@@ -22,10 +33,10 @@ export const subscribeToChildren = (callback) => {
       childrenList.push({ id: docSnap.id, ...docSnap.data() });
     });
     
-    // If no children in Firebase, we can optionally return the INIT_CHILDREN for demo purposes
+    // Optional fallback message
     if (childrenList.length === 0) {
-      console.log("No children in Firestore yet. Fallback to Init Data manually if needed.");
-      callback([]); // Returning empty list so we can see when it truly syncs
+      console.log("No children found for this Anganwadi. Fallback to Init Data manually if needed.");
+      callback([]); 
     } else {
       callback(childrenList);
     }

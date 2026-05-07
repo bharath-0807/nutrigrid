@@ -34,12 +34,13 @@ export function lmsInterpolate(table, age) {
  * Compute WHO LMS z-score for a measurement.
  * @param {number} value   - Weight (kg) or Height (cm)
  * @param {number} age     - Age in months
- * @param {string} gender  - "boys" or "girls"
+ * @param {string} gender  - "boys" or "girls" or "transgender"
  * @param {string} type    - "weight" or "height"
  * @returns {number} z-score
  */
-export function lmsZScore(value, age, gender, type) {
-  const { L, M, S } = lmsInterpolate(LMS_TABLES[gender][type], age);
+export function lmsZScore(value, age, gender, type, sexAtBirth = "boys") {
+  const g = gender === "transgender" ? sexAtBirth : gender;
+  const { L, M, S } = lmsInterpolate(LMS_TABLES[g][type], age);
   if (Math.abs(L) < 0.0001) return Math.log(value / M) / S;
   return (Math.pow(value / M, L) - 1) / (L * S);
 }
@@ -47,15 +48,17 @@ export function lmsZScore(value, age, gender, type) {
 /**
  * Get the exact WHO median (optimal target) for a specific measurement.
  */
-export function getOptimalTarget(age, gender, type) {
-  return lmsInterpolate(LMS_TABLES[gender][type], age).M;
+export function getOptimalTarget(age, gender, type, sexAtBirth = "boys") {
+  const g = gender === "transgender" ? sexAtBirth : gender;
+  return lmsInterpolate(LMS_TABLES[g][type], age).M;
 }
 
 /**
  * Calculate the expected measurement (in kg or cm) for a given WHO z-score threshold.
  */
-export function getWHOThresholds(age, gender, type, z) {
-  const { L, M, S } = lmsInterpolate(LMS_TABLES[gender][type], age);
+export function getWHOThresholds(age, gender, type, z, sexAtBirth = "boys") {
+  const g = gender === "transgender" ? sexAtBirth : gender;
+  const { L, M, S } = lmsInterpolate(LMS_TABLES[g][type], age);
   if (Math.abs(L) < 0.0001) return M * Math.exp(S * z);
   return M * Math.pow(1 + L * S * z, 1 / L);
 }
