@@ -19,35 +19,54 @@ export const subscribeToChildren = (user, callback) => {
 
   let q;
   if (user.role === "CDPO") {
-    // CDPO (Chief) sees all children in the block
-    q = query(childrenCollectionRef, orderBy("createdAt", "desc"));
+    // CDPO (Chief) sees ALL children across all Anganwadis
+    q = query(childrenCollectionRef);
   } else {
-    // Anganwadi Worker sees only their specific center
-    const awId = user.anganwadi_id || "AW-COIM-101"; // Fallback to demo ID
-    q = query(childrenCollectionRef, where("anganwadi_id", "==", awId), orderBy("createdAt", "desc"));
+    // Anganwadi Worker sees ONLY their specific center's children
+    const awId = user.anganwadi_id || "AW-COIM-101";
+    q = query(childrenCollectionRef, where("anganwadi_id", "==", awId));
   }
   
   return onSnapshot(q, (snapshot) => {
     const childrenList = [];
     snapshot.forEach((docSnap) => {
-      childrenList.push({ id: docSnap.id, ...docSnap.data() });
+      const data = docSnap.data();
+      // Only include docs that have valid records
+      if (data.records && data.records.length > 0) {
+        childrenList.push({ id: docSnap.id, ...data });
+      }
     });
     
-    // Optional fallback message
-    if (childrenList.length === 0) {
-      console.log("No children found for this Anganwadi. Fallback to Init Data manually if needed.");
-      callback([]); 
-    } else {
-      callback(childrenList);
-    }
+    // Sort by name client-side to avoid needing a composite Firestore index
+    childrenList.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    callback(childrenList);
   }, (error) => {
     console.error("Error subscribing to children:", error.message);
+    // If index error, fall back to unfiltered query
+    if (error.message.includes("index")) {
+      console.warn("Firestore index missing. Falling back to local filter.");
+      const fallbackQ = query(childrenCollectionRef);
+      return onSnapshot(fallbackQ, (snapshot) => {
+        const list = [];
+        const awId = user.anganwadi_id || "AW-COIM-101";
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data.records && data.records.length > 0) {
+            if (user.role === "CDPO" || data.anganwadi_id === awId) {
+              list.push({ id: docSnap.id, ...data });
+            }
+          }
+        });
+        list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+        callback(list);
+      });
+    }
+    callback([]);
   });
 };
 
-// Add a new child record
+// Add/update a child record in Firebase
 export const saveChildToFirebase = async (child) => {
-  // Use the child's ID as the document ID or let Firebase generate one
   const docId = child.id ? child.id.toString() : Date.now().toString();
   const docRef = doc(db, "children", docId);
   
@@ -55,22 +74,21 @@ export const saveChildToFirebase = async (child) => {
     await setDoc(docRef, {
       ...child,
       createdAt: serverTimestamp()
-    }, { merge: true }); // Merge true allows updating existing children nicely
-    console.log("Child saved to Firebase successfully");
+    }, { merge: true });
+    console.log("Child saved to Firebase:", child.name || docId);
   } catch (error) {
     console.error("Error saving child to Firebase:", error.message);
     throw error;
   }
 };
 
-// Bulk upload initial data (Utility function for the first run)
+// Seed all demo children into Firestore
 export const seedInitialData = async () => {
   try {
-    console.log("Seeding initial data...");
-    for (const child of INIT_CHILDREN) {
-      await saveChildToFirebase(child);
-    }
-    console.log("Successfully seeded initial data");
+    console.log("Seeding initial data (" + INIT_CHILDREN.length + " children)...");
+    const promises = INIT_CHILDREN.map(child => saveChildToFirebase(child));
+    await Promise.all(promises);
+    console.log("Successfully seeded " + INIT_CHILDREN.length + " children");
   } catch (e) {
     console.error("Error seeding initial data:", e);
     throw e;
