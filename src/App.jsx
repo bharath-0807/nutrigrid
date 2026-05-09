@@ -22,6 +22,7 @@ export default function App() {
   const [screen, setScreen] = useState("dashboard");
   const [children, setChildren] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [editChild, setEditChild] = useState(null);
   const [pwaEvt, setPwaEvt] = useState(null);
 
 
@@ -96,6 +97,7 @@ export default function App() {
   }), [children, grades]);
 
   const goDetail = useCallback((c) => { setSelected(c); setScreen("detail"); }, []);
+  const goEdit = useCallback((c) => { setEditChild(c); setScreen("add"); }, []);
   
   // Notice we don't need handleAdd anymore because real-time listener updates `children` automatically.
   
@@ -178,8 +180,8 @@ export default function App() {
             )}
           </div>
           {screen === "dashboard" && <Dashboard children={children} grades={grades} stats={stats} goDetail={goDetail} user={user} />}
-          {screen === "children" && <ChildrenList children={children} grades={grades} goDetail={goDetail} setScreen={setScreen} />}
-          {screen === "add" && <AddRecord user={user} children={children} setScreen={setScreen} />}
+          {screen === "children" && <ChildrenList children={children} grades={grades} goDetail={goDetail} setScreen={setScreen} onEdit={goEdit} user={user} />}
+          {screen === "add" && <AddRecord user={user} children={children} setScreen={setScreen} editChild={editChild} clearEdit={() => setEditChild(null)} />}
           {screen === "analytics" && <Analytics children={children} grades={grades} stats={stats} />}
           {screen === "docs" && <ClinicalDocs />}
           {screen === "detail" && <Detail child={selected} grades={grades} setScreen={setScreen} />}

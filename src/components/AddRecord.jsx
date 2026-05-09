@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { CheckCircle, Brain, Mic, MicOff, Volume2, Search, UserPlus, Syringe, Heart } from "lucide-react";
+import { CheckCircle, Brain, Mic, MicOff, Volume2, Search, UserPlus, Syringe, Heart, Edit3 } from "lucide-react";
 import { lmsZScore, classifyChild, getOptimalTarget } from "../utils/lmsCalc";
 import { GRADE_CFG } from "../data/clinicalConfig";
 import { saveChildToFirebase } from "../services/childrenService";
@@ -69,7 +69,7 @@ function parseSpokenNumber(text) {
 const MEDICAL_OPTIONS = ["None", "Peanut Allergy", "Milk Allergy", "Asthma", "Type 1 Diabetes", "Differently Abled", "Congenital Heart Defect", "Epilepsy", "Other"];
 const VACCINE_OPTIONS = ["Fully Vaccinated", "Pending Polio", "Pending Measles", "Pending DPT", "Not Vaccinated"];
 
-export default function AddRecord({ user, children = [], setScreen }) {
+export default function AddRecord({ user, children = [], setScreen, editChild, clearEdit }) {
   const [mode, setMode] = useState("new"); // "new" | "followup"
   const [searchId, setSearchId] = useState("");
   const [foundChild, setFoundChild] = useState(null);
@@ -83,6 +83,26 @@ export default function AddRecord({ user, children = [], setScreen }) {
   const [loading, setLoading] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState("");
   const [voiceLang, setVoiceLang] = useState("en-IN");
+
+  // Pre-fill form when editing an existing child
+  const isEditing = !!editChild;
+  useState(() => {
+    if (editChild) {
+      const lastRec = editChild.records?.[editChild.records.length - 1];
+      setMode("new");
+      setForm({
+        name: editChild.name || "",
+        age: lastRec ? String(lastRec.month) : "",
+        gender: editChild.gender || "boys",
+        village: editChild.village || "Block A",
+        weight: lastRec ? String(lastRec.weight) : "",
+        height: lastRec ? String(lastRec.height) : "",
+        muac: lastRec?.muac ? String(lastRec.muac) : "",
+        medicalConditions: editChild.medicalConditions || [],
+        vaccinationStatus: editChild.vaccinationStatus || "Fully Vaccinated",
+      });
+    }
+  });
 
   const VOICE_LANGS = [
     { code: "en-IN", label: "English (India)" },
@@ -180,7 +200,30 @@ export default function AddRecord({ user, children = [], setScreen }) {
       };
       if (muac !== null) record.muac = muac;
 
-      if (mode === "followup" && foundChild) {
+      let savedNutrigridId = "";
+
+      if (isEditing && editChild) {
+        // EDIT MODE: Replace the last record with corrected data
+        const updatedRecords = [...(editChild.records || [])];
+        updatedRecords[updatedRecords.length - 1] = {
+          ...record,
+          editedFrom: editChild.records[editChild.records.length - 1], // Keep old data for audit
+          editReason: "Data Correction",
+        };
+        await saveChildToFirebase({
+          ...editChild,
+          name: form.name.trim(),
+          age,
+          gender: form.gender,
+          village: form.village,
+          records: updatedRecords,
+          medicalConditions: form.medicalConditions,
+          vaccinationStatus: form.vaccinationStatus,
+          lastEditedBy: user?.name || user?.email || "Worker",
+          lastEditedAt: new Date().toISOString(),
+        });
+        savedNutrigridId = editChild.nutrigridId || "";
+      } else if (mode === "followup" && foundChild) {
         // Append new checkup to existing child
         const updatedRecords = [...(foundChild.records || []), record];
         await saveChildToFirebase({
@@ -190,13 +233,14 @@ export default function AddRecord({ user, children = [], setScreen }) {
           medicalConditions: form.medicalConditions,
           vaccinationStatus: form.vaccinationStatus,
         });
+        savedNutrigridId = foundChild.nutrigridId || "";
       } else {
         // New child registration
         const nextId = Date.now().toString();
-        const nutrigridId = `NG-${new Date().getFullYear()}-${String(children.length + 1).padStart(3, "0")}`;
+        savedNutrigridId = `NG-${new Date().getFullYear()}-${String(children.length + 1).padStart(3, "0")}`;
         await saveChildToFirebase({
           id: nextId,
-          nutrigridId,
+          nutrigridId: savedNutrigridId,
           name: form.name.trim(),
           age,
           gender: form.gender,
@@ -208,11 +252,16 @@ export default function AddRecord({ user, children = [], setScreen }) {
         });
       }
 
-      setToast({ grade, waz: waz.toFixed(2), haz: haz.toFixed(2), muac: muacResult, isFollowup: mode === "followup" });
+      setToast({
+        grade, waz: waz.toFixed(2), haz: haz.toFixed(2), muac: muacResult,
+        isFollowup: mode === "followup", isEdit: isEditing,
+        nutrigridId: savedNutrigridId,
+      });
       setForm({ name: "", age: "", gender: "boys", village: "Block A", weight: "", height: "", muac: "", medicalConditions: [], vaccinationStatus: "Fully Vaccinated" });
       setFoundChild(null);
       setSearchId("");
-      setTimeout(() => setToast(null), 5000);
+      if (clearEdit) clearEdit();
+      setTimeout(() => setToast(null), 8000);
     } catch (err) {
       setError("Failed to save record to Firebase. Check internet connection.");
     } finally {
@@ -225,7 +274,8 @@ export default function AddRecord({ user, children = [], setScreen }) {
 
   return (
     <div style={{ maxWidth: 600, margin: "0 auto" }}>
-      {/* MODE TOGGLE */}
+      {/* MODE TOGGLE (hidden in edit mode) */}
+      {!isEditing && (
       <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
         <button
           onClick={() => { setMode("new"); setFoundChild(null); setError(""); }}
@@ -246,6 +296,28 @@ export default function AddRecord({ user, children = [], setScreen }) {
           }}
         ><Search size={16} /> Follow-up Checkup</button>
       </div>
+      )}
+
+      {/* EDIT MODE BANNER */}
+      {isEditing && (
+        <div style={{
+          background: "linear-gradient(135deg, #FEF3C7, #FFFBEB)", border: "1.5px solid #FDE68A",
+          borderRadius: 12, padding: "14px 20px", marginBottom: 16,
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Edit3 size={18} color="#D97706" />
+            <div>
+              <div style={{ fontWeight: 800, fontSize: 14, color: "#92400E" }}>Editing: {editChild.name}</div>
+              <div style={{ fontSize: 12, color: "#B45309", fontFamily: "IBM Plex Mono" }}>{editChild.nutrigridId} · Correcting last record</div>
+            </div>
+          </div>
+          <button
+            onClick={() => { if (clearEdit) clearEdit(); setScreen("children"); }}
+            style={{ padding: "6px 14px", borderRadius: 6, border: "1px solid #D97706", background: "#fff", color: "#D97706", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+          >Cancel Edit</button>
+        </div>
+      )}
 
       {/* FOLLOW-UP SEARCH */}
       {mode === "followup" && (
@@ -305,10 +377,32 @@ export default function AddRecord({ user, children = [], setScreen }) {
             <div className="toast" style={{
               background: GRADE_CFG[toast.grade]?.bg, borderColor: GRADE_CFG[toast.grade]?.border,
               borderLeftColor: GRADE_CFG[toast.grade]?.col, color: GRADE_CFG[toast.grade]?.col,
+              flexDirection: "column", alignItems: "flex-start", gap: 6,
             }}>
-              <CheckCircle size={14} />
-              {toast.isFollowup ? "Follow-up Saved" : "Registered"} · WHO Grade: <strong>{toast.grade}</strong> · WAZ:{toast.waz} · HAZ:{toast.haz}
-              {toast.muac && <> · MUAC: <strong>{toast.muac.zone}</strong></>}
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <CheckCircle size={16} />
+                <strong style={{ fontSize: 14 }}>
+                  {toast.isEdit ? "✏️ Record Corrected" : toast.isFollowup ? "📋 Follow-up Saved" : "✅ Child Registered"}
+                </strong>
+              </div>
+              {toast.nutrigridId && (
+                <div style={{
+                  background: "rgba(0,0,0,0.06)", padding: "6px 14px", borderRadius: 6, marginTop: 4,
+                  fontFamily: "IBM Plex Mono", fontWeight: 800, fontSize: 16, letterSpacing: 1,
+                  color: "#00509E", border: "1.5px dashed rgba(0,0,0,0.15)",
+                }}>
+                  🆔 {toast.nutrigridId}
+                </div>
+              )}
+              <div style={{ fontSize: 12, marginTop: 2 }}>
+                WHO Grade: <strong>{toast.grade}</strong> · WAZ: {toast.waz} · HAZ: {toast.haz}
+                {toast.muac && <> · MUAC: <strong>{toast.muac.zone}</strong></>}
+              </div>
+              {!toast.isEdit && toast.nutrigridId && (
+                <div style={{ fontSize: 11, color: "#475569", marginTop: 2 }}>
+                  ☝️ Note down this ID for future follow-up checkups
+                </div>
+              )}
             </div>
           )}
           {error && <div className="form-error">{error}</div>}
