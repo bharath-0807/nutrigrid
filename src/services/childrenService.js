@@ -81,7 +81,6 @@ export const seedInitialData = async () => {
     await Promise.all(promises);
     console.log("Seed complete.");
   } catch (e) {
-    console.error("Seed error:", e);
-    throw e;
+    console.error("Seed error (possibly insufficient permissions):", e.message);
   }
 };

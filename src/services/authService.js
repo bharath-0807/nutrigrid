@@ -34,8 +34,6 @@ export const loginUser = async (email, password) => {
 
   // Fetch role/block info from Firestore user document
   const userDocRef = doc(db, "users", fbUser.uid);
-  const userDoc = await getDoc(userDocRef);
-
   const isChief = fbUser.email.toLowerCase().includes("chief");
   const defaultUserData = {
     uid: fbUser.uid,
@@ -46,8 +44,18 @@ export const loginUser = async (email, password) => {
     anganwadi_id: isChief ? "ALL" : "AW-COIM-101"
   };
 
-  const userData = userDoc.exists()
-    ? { ...defaultUserData, ...userDoc.data(), uid: fbUser.uid }
+  let userDataObj = null;
+  try {
+    const userDoc = await getDoc(userDocRef);
+    if (userDoc.exists()) {
+      userDataObj = userDoc.data();
+    }
+  } catch (err) {
+    console.warn("Could not fetch user document from Firestore (possibly insufficient permissions). Using default role.", err);
+  }
+
+  const userData = userDataObj
+    ? { ...defaultUserData, ...userDataObj, uid: fbUser.uid }
     : defaultUserData;
 
   saveSession(userData);
